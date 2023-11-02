@@ -1,10 +1,33 @@
-<!doctype html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1"> 
-    <title>Hi</title>
-  </head>
-  <body>
-        <h1>Hello!</h1>
-  </body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">
+    <!-- jQuery library -->
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <title>Event Search</title>
+    <style>
+      .form-spacing {
+          margin-bottom: 20px;
+      }
+  </style>
+</head>
+<body>
+
+<h1>Search Events by Person ID</h1>
+
+<form id="search-form" action="#" method="post">
+    <label for="personId">Person ID:</label>
+    <input type="text" id="personId" name="personId">
+    <button type="submit">Search</button>
+</form>
+
+<div id="events">
+    <!-- The DataTable will be inserted here -->
+</div>
+
+</body>
 </html>

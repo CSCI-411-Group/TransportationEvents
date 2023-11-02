@@ -1,0 +1,15 @@
+body {
+    font-family: Arial, sans-serif;
+}
+#events {
+    margin-top: 20px;
+}
+.event {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+.event-time {
+    color: #555;
+    font-size: 0.9em;
+}
