@@ -131,36 +131,36 @@ CREATE TABLE Events
 
     FOREIGN KEY (Link) REFERENCES Links(LinkID)
 
-); 
+);
 
 
 --4.a question
-SELECT *  
-FROM Events  
-WHERE Person = 'p_9031'; 
+SELECT *
+FROM Events
+WHERE Person = 'p_9031';
 
 --4.b question
-SELECT 
+SELECT
     L.*,
     N1.NodeID AS FromNodeID, N1.X AS FromNodeX, N1.Y AS FromNodeY,
     N2.NodeID AS ToNodeID, N2.X AS ToNodeX, N2.Y AS ToNodeY
-FROM 
+FROM
     Links L
-JOIN 
+    JOIN
     Nodes N1 ON L.FromNode = N1.NodeID
-JOIN 
+    JOIN
     Nodes N2 ON L.ToNode = N2.NodeID
 WHERE 
     L.LinkID = '7735018_0';
 
 --4.c
-SELECT 
+SELECT
     Person,
     SUM(Distance) AS TotalDistanceWalked
-FROM 
-    Events 
+FROM
+    Events
 WHERE 
-    Mode = 'walk'   
+    Mode = 'walk'
 GROUP BY 
     Person
 ORDER BY 
@@ -168,46 +168,54 @@ ORDER BY
 
 
 --4.d
-WITH StartTimes AS (
-    SELECT 
-        Person,
-        Time AS StartTime,
-        link, 
-        actType
-    FROM 
-        Events
-    WHERE 
+WITH
+    StartTimes
+    AS
+    (
+        SELECT
+            Person,
+            Time AS StartTime,
+            link,
+            actType
+        FROM
+            Events
+        WHERE 
         Type = 'actstart'
-),
+    ),
 
-EndTimes AS (
-    SELECT 
-        Person,
-        Time AS EndTime,
-        link,
-        actType
-    FROM 
-        Events
-    WHERE 
+    EndTimes
+    AS
+    (
+        SELECT
+            Person,
+            Time AS EndTime,
+            link,
+            actType
+        FROM
+            Events
+        WHERE 
         Type = 'actend'
-)
+    )
 
-, Duration AS (
-    SELECT 
-        s.Person,
-        e.EndTime - s.StartTime AS ActivityDuration
-    FROM 
-        StartTimes s
-    JOIN 
-        EndTimes e ON s.Person = e.Person AND s.link = e.link AND s.actType = e.actType
-    WHERE 
+,
+    Duration
+    AS
+    (
+        SELECT
+            s.Person,
+            e.EndTime - s.StartTime AS ActivityDuration
+        FROM
+            StartTimes s
+            JOIN
+            EndTimes e ON s.Person = e.Person AND s.link = e.link AND s.actType = e.actType
+        WHERE 
         e.EndTime > s.StartTime
-)
+    )
 
-SELECT 
+SELECT
     Person,
     AVG(ActivityDuration) AS AverageActivityTime
-FROM 
+FROM
     Duration
 GROUP BY 
     Person
@@ -218,11 +226,11 @@ ORDER BY
 
 
 --4.e
-SELECT 
+SELECT
     Person,
     MIN(Time) AS EarliestDepartureTime
-FROM 
-    Events 
+FROM
+    Events
 WHERE 
     Type = 'departure' AND LegMode = 'car'
 GROUP BY 
@@ -230,3 +238,6 @@ GROUP BY
 ORDER BY 
     EarliestDepartureTime;
 
+--index
+CREATE INDEX idx_person ON Events (Person);
+CREATE INDEX idx_link ON Events (Link);
