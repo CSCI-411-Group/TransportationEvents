@@ -21,7 +21,7 @@
 </head>
 <body>
 
-<h1>Search Events</h1>
+<h1>Transportation Events</h1>
 
 <form id="search-form">
     <input type="radio" id="searchByPerson" name="searchType" value="personId" checked>
@@ -36,6 +36,17 @@
     <label for="searchByLink">Link ID (Link Information):</label>
     <input type="text" id="linkIdLinkTable" name="searchId" disabled>
     
+      
+    <div id="timeRange" style="display: none;">
+        <label for="startTime">Start Time:</label>
+        <input type="time" id="startTime" name="startTime">
+        
+        <label for="endTime">End Time:</label>
+        <input type="time" id="endTime" name="endTime">
+        <button type="button" id="resetTime">Reset Time</button>
+
+    </div>
+
     <button type="submit">Search</button>
 </form>
 
@@ -44,8 +55,15 @@
 </div>
 
 <script>
-    // This script will handle the form submission by sending an AJAX request
-    // to your Flask endpoint and updating the DataTable with the response.
+    $(document).ready(function() {
+        // Your existing code
+
+        // Reset time fields when the reset button is clicked
+        $('#resetTime').click(function() {
+            $('#startTime').val('');
+            $('#endTime').val('');
+        });
+    });
 </script>
 
 </body>

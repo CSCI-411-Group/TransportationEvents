@@ -8,16 +8,20 @@ $(document).ready(function() {
             $('#personId').prop('disabled', false);
             $('#linkId').prop('disabled', true);
             $('#linkIdLinkTable').prop('disabled', true);
+            $('#timeRange').hide();
+
 
         } else if (searchType === 'linkId') {
             $('#personId').prop('disabled', true);
             $('#linkId').prop('disabled', false);
             $('#linkIdLinkTable').prop('disabled', true);
+            $('#timeRange').show();
         }
         else{
             $('#personId').prop('disabled', true);
             $('#linkId').prop('disabled', true);
             $('#linkIdLinkTable').prop('disabled', false);
+            $('#timeRange').hide();
         }
     });
 
@@ -25,12 +29,20 @@ $(document).ready(function() {
         e.preventDefault();
         var searchType = $('input[name="searchType"]:checked').val();
         var searchId = $('#' + searchType).val();
-        searchEvents(searchType, searchId);
+        var startTime = searchType === 'linkId' ? $('#startTime').val() : null;
+        var endTime = searchType === 'linkId' ? $('#endTime').val() : null;
+        searchEvents(searchType, searchId, startTime, endTime);
     });
 });
 
-function searchEvents(searchType, searchId) {
+function searchEvents(searchType, searchId, startTime, endTime) {
     var queryParam = searchType + '=' + encodeURIComponent(searchId);
+    
+    // Ensure startTime and endTime are only appended for linkId searchType
+    if (searchType === 'linkId' && startTime && endTime) {
+        queryParam += '&startTime=' + encodeURIComponent(startTime);
+        queryParam += '&endTime=' + encodeURIComponent(endTime);
+    }
     fetch('/search?' + queryParam)
         .then(response => response.json())
         .then(events => {
@@ -39,6 +51,10 @@ function searchEvents(searchType, searchId) {
                 $('#eventsTable').DataTable().destroy();
             }
             $('#events').empty();
+            if(events.length === 0) {
+                $('#events').html('<div>No events found.</div>');
+                return; // Exit the function early
+            }
             var tableHtml;
             if(searchType == 'personId' || searchType == 'linkId'){
                 tableHtml = `
