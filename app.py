@@ -61,8 +61,7 @@ def search():
             results = cur.fetchall()
             results_list.extend([dict(link) for link in results])
 
-        if not results_list:
-            return jsonify({'error': 'Invalid or missing search parameters'}), 400
+      
 
     except Exception as e:
         return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500

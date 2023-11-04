@@ -1,29 +1,34 @@
 $(document).ready(function() {
     var searchForm = $('#search-form');
     
-    $('input[name="searchType"]').change(function() {
+    function updateRequiredAttributes() {
         // Enable the appropriate input based on the selected search type
         var searchType = $(this).val();
-        if(searchType === 'personId') {
-            $('#personId').prop('disabled', false);
-            $('#linkId').prop('disabled', true);
-            $('#linkIdLinkTable').prop('disabled', true);
-            $('#timeRange').hide();
+        if ($('#searchByPerson').is(':checked')) {
+            $('#personId').prop('disabled', false).val('');
+            $('#linkId').prop('disabled', true).val('');
+            $('#linkIdLinkTable').prop('disabled', true).val('');
+            $('#timeRange').hide().val('');
 
 
-        } else if (searchType === 'linkId') {
-            $('#personId').prop('disabled', true);
-            $('#linkId').prop('disabled', false);
-            $('#linkIdLinkTable').prop('disabled', true);
-            $('#timeRange').show();
+        } else if ($('#searchByLink').is(':checked')) {
+
+            $('#personId').prop('disabled', true).val('');
+            $('#linkId').prop('disabled', false).val('');
+            $('#linkIdLinkTable').prop('disabled', true).val('');
+            $('#timeRange').show().val('');
         }
         else{
-            $('#personId').prop('disabled', true);
-            $('#linkId').prop('disabled', true);
-            $('#linkIdLinkTable').prop('disabled', false);
-            $('#timeRange').hide();
+            $('#personId').prop('disabled', true).val('');
+            $('#linkId').prop('disabled', true).val('');
+            $('#linkIdLinkTable').prop('disabled', false).val('');
+            $('#timeRange').hide().val('');
         }
-    });
+    }
+
+
+    $('input[name="searchType"]').change(updateRequiredAttributes);
+
 
     searchForm.on('submit', function(e) {
         e.preventDefault();
@@ -51,10 +56,6 @@ function searchEvents(searchType, searchId, startTime, endTime) {
                 $('#eventsTable').DataTable().destroy();
             }
             $('#events').empty();
-            if(events.length === 0) {
-                $('#events').html('<div>No events found.</div>');
-                return; // Exit the function early
-            }
             var tableHtml;
             if(searchType == 'personId' || searchType == 'linkId'){
                 tableHtml = `
@@ -106,7 +107,10 @@ function searchEvents(searchType, searchId, startTime, endTime) {
             $('#eventsTable').DataTable({
                 // DataTables initialization options
                 destroy: true, // This option allows re-initialization on the same table
-                autoWidth: false // This can help with rendering issues in some cases
+                autoWidth: false, // This can help with rendering issues in some cases
+                language: {
+                emptyTable: "No Data Found!" // Custom message for an empty table
+                }
                 
             });
           

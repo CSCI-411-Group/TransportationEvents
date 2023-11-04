@@ -1,15 +1,106 @@
+/* styles.css */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
+    padding: 10px 20px;
 }
+
+h1 {
+    color: #333;
+}
+
+/* Form styles */
+form {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+input[type=text],
+input[type=time] {
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+input[type=radio] {
+    margin-right: 5px;
+}
+
+label {
+    margin-right: 10px;
+}
+
+button {
+    background-color: #5cb85c;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #4cae4c;
+}
+
+/* Reset button specific styling */
+#resetTime {
+    background-color: #f0ad4e;
+}
+
+#resetTime:hover {
+    background-color: #ec971f;
+}
+
+/* DataTables container */
 #events {
     margin-top: 20px;
 }
-.event {
-    border: 1px solid #ddd;
-    padding: 10px;
-    margin-bottom: 10px;
+
+/* Centering table text */
+.centered-table th,
+.centered-table td {
+    text-align: center;
 }
-.event-time {
-    color: #555;
-    font-size: 0.9em;
+
+/* DataTables overrides */
+.dataTables_wrapper {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+table.dataTable {
+    border-collapse: collapse;
+}
+
+table.dataTable th,
+table.dataTable td {
+    padding: 10px;
+}
+
+table.dataTable thead th {
+    background-color: #e9ecef;
+}
+
+/* Adding zebra striping to rows */
+table.dataTable tbody tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+
+/* Hover effect for rows */
+table.dataTable tbody tr:hover {
+    background-color: #f1f1f1;
+}
+.time-range-spacing {
+    margin-top: 20px; /* Adjust the space as needed */
+}
+.bottom-spacing {
+    margin-bottom: 20px; /* Adjust the space as needed */
 }

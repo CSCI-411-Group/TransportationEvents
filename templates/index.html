@@ -8,6 +8,7 @@
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
     <title>Event Search</title>
     <style>
         .form-spacing {
@@ -25,19 +26,19 @@
 
 <form id="search-form">
     <input type="radio" id="searchByPerson" name="searchType" value="personId" checked>
-    <label for="searchByPerson">Person ID:</label>
-    <input type="text" id="personId" name="searchId">
+    <label for="searchByPerson">Person ID</label>
+    <input type="text" id="personId" name="searchId" required>
     
     <input type="radio" id="searchByLink" name="searchType" value="linkId">
-    <label for="searchByLink">Link ID:</label>
-    <input type="text" id="linkId" name="searchId" disabled>
+    <label for="searchByLink">Link ID</label>
+    <input type="text" id="linkId" name="searchId" disabled required>
 
-    <input type="radio" id="searchByLink" name="searchType" value="linkIdLinkTable">
-    <label for="searchByLink">Link ID (Link Information):</label>
-    <input type="text" id="linkIdLinkTable" name="searchId" disabled>
+    <input type="radio" id="searchByLinkInfo" name="searchType" value="linkIdLinkTable">
+    <label for="searchByLink">Link ID (Link Information)</label>
+    <input type="text" id="linkIdLinkTable" name="searchId" disabled class="bottom-spacing" required>
     
       
-    <div id="timeRange" style="display: none;">
+    <div id="timeRange" class="time-range-spacing" style="display: none;">
         <label for="startTime">Start Time:</label>
         <input type="time" id="startTime" name="startTime">
         
