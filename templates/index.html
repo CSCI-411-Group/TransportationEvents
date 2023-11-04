@@ -10,24 +10,43 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <title>Event Search</title>
     <style>
-      .form-spacing {
-          margin-bottom: 20px;
-      }
-  </style>
+        .form-spacing {
+            margin-bottom: 20px;
+        }
+        .centered-table th,
+        .centered-table td {
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
-<h1>Search Events by Person ID</h1>
+<h1>Search Events</h1>
 
-<form id="search-form" action="#" method="post">
-    <label for="personId">Person ID:</label>
-    <input type="text" id="personId" name="personId">
+<form id="search-form">
+    <input type="radio" id="searchByPerson" name="searchType" value="personId" checked>
+    <label for="searchByPerson">Person ID:</label>
+    <input type="text" id="personId" name="searchId">
+    
+    <input type="radio" id="searchByLink" name="searchType" value="linkId">
+    <label for="searchByLink">Link ID:</label>
+    <input type="text" id="linkId" name="searchId" disabled>
+
+    <input type="radio" id="searchByLink" name="searchType" value="linkIdLinkTable">
+    <label for="searchByLink">Link ID (Link Information):</label>
+    <input type="text" id="linkIdLinkTable" name="searchId" disabled>
+    
     <button type="submit">Search</button>
 </form>
 
 <div id="events">
     <!-- The DataTable will be inserted here -->
 </div>
+
+<script>
+    // This script will handle the form submission by sending an AJAX request
+    // to your Flask endpoint and updating the DataTable with the response.
+</script>
 
 </body>
 </html>
