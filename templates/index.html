@@ -40,6 +40,8 @@
     <label for="searchByLink">Link ID (Link Information)</label>
     <input type="text" id="linkIdLinkTable" name="searchId" disabled class="bottom-spacing" required>
     
+    <input type="radio" id="searchByVisualization" name="searchType" value="visualization">
+    <label for="searchByVisualization">Visualization</label>
     
     <div id="timeRange" class="time-range-spacing" style="display: none;">
         <label for="startTime">Start Time:</label>
@@ -52,8 +54,7 @@
     </div>
 
 
-    <input type="radio" id="searchByVisualization" name="searchType" value="visualization">
-    <label for="searchByVisualization">Visualization</label>
+  
 
     <div id="visualizationOptions" style="display: none;">
         <label for="visPersonId">Person ID for Visualization:</label>
@@ -64,13 +65,13 @@
 
         <label for="visEndTime">End Time:</label>
         <input type="time" id="visEndTime" name="visEndTime" disabled>
-        <button type="button" id="resetTime">Reset Time</button>
+        <button type="button" id="resetTimeViz">Reset Time</button>
 
     </div>
 
 
-    <button type="submit">Search</button>
-    <button type="button" id="visualization-button">Show Visualization</button>
+    <button type="submit" id="search">Search</button>
+    <button type="button" id="visualization-button" style="display: none;">Show Visualization</button>
 
 </form>
 
@@ -90,6 +91,12 @@
         $('#resetTime').click(function() {
             $('#startTime').val('');
             $('#endTime').val('');
+            $('#visStartTime').val('');
+            $('#visEndTime').val('');
+        });
+        $('#resetTimeViz').click(function() {
+            $('#visStartTime').val('');
+            $('#visEndTime').val('');
         });
     });
 </script>
