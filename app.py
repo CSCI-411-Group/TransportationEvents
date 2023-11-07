@@ -19,6 +19,7 @@ def time_to_seconds(time_str):
     hours, minutes = map(int, time_str.split(':'))
     return hours * 3600 + minutes * 60
 
+
 @app.route('/', methods=['GET', 'POST'])
 def create():
     return render_template('index.html')
@@ -81,8 +82,13 @@ def visualize():
     start_time = request.args.get('startTime')
     end_time = request.args.get('endTime')
     
+    start_time = time_to_seconds(start_time)
+    end_time = time_to_seconds(end_time)
+    
     start_time = None if start_time == '' else start_time
     end_time = None if end_time == '' else end_time
+    
+    
     
     conn = None
     cur = None
