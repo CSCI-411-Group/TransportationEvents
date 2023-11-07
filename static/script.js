@@ -13,18 +13,26 @@ $(document).ready(function() {
             case 'personId':
                 $('#personId').prop('disabled', false);
                 $('#timeRange').hide();
+                $('#search').show();
+                $('#visualization-button').hide();
                 break;
             case 'linkId':
                 $('#linkId').prop('disabled', false);
                 $('#timeRange').show();
+                $('#search').show();
+                $('#visualization-button').hide();
                 break;
             case 'linkIdLinkTable':
                 $('#linkIdLinkTable').prop('disabled', false);
                 $('#timeRange').hide();
+                $('#search').show();
+                $('#visualization-button').hide();
                 break;
             case 'visualization':
                 $('#visualizationOptions').show();
                 $('#visPersonId, #visStartTime, #visEndTime').prop('disabled', false);
+                $('#visualization-button').show();
+                $('#search').hide();
                 break;
         }
     }
@@ -139,6 +147,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (visualizationButton) {
         visualizationButton.addEventListener('click', function() {
+            var searchType = $('input[name="searchType"]:checked').val();
+
+            if(searchType=='visualization'){
+
+            
             // Retrieve the visualization parameters from the form
             var visPersonId = document.getElementById('visPersonId').value;
             var visStartTime = document.getElementById('visStartTime').value;
@@ -160,6 +173,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error fetching the map:', error);
             });
+        }
+        else{
+            console.error('Error fetching the map:');
+
+        }
         });
     }
 });

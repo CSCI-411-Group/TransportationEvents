@@ -7,10 +7,11 @@ from pyproj import Transformer
 app = Flask(__name__)
 
 #connection (change this based on your db)
+
 db_config = {
     'dbname': 'TransportationEvents',
     'user': 'postgres',
-    'password': 'user',
+    'password': 'shaheen1',
     'host': 'localhost',
     'port': '5432'
 }
