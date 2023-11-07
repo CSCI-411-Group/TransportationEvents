@@ -11,7 +11,7 @@ app = Flask(__name__)
 db_config = {
     'dbname': 'TransportationEvents',
     'user': 'postgres',
-    'password': 'shaheen1',
+    'password': 'user',
     'host': 'localhost',
     'port': '5432'
 }
@@ -83,11 +83,12 @@ def visualize():
     start_time = request.args.get('startTime')
     end_time = request.args.get('endTime')
     
-    start_time = time_to_seconds(start_time)
-    end_time = time_to_seconds(end_time)
-    
-    start_time = None if start_time == '' else start_time
-    end_time = None if end_time == '' else end_time
+    if start_time and end_time:
+        start_time = time_to_seconds(start_time)
+        end_time = time_to_seconds(end_time)
+    else:
+        start_time = None if start_time == '' else start_time
+        end_time = None if end_time == '' else end_time
     
     
     
@@ -157,8 +158,8 @@ def visualize():
                 locations=[from_coord[::-1], to_coord[::-1]],  # Flip coords because folium uses (lat, lon)
                 color="blue",
                 weight=2.5,
-                opacity=1
-            ).add_to(m)
+                opacity=1,
+            ).add_to(m).add_child(folium.Popup(f"Link ID: {link['linkid']}"))
         
         
         # Generate and return map HTML
