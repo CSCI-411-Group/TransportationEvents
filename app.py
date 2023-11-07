@@ -1,7 +1,8 @@
 from flask import Flask, request, render_template, redirect, url_for, jsonify, flash, session  
 import psycopg2
 import psycopg2.extras
-
+import folium
+from pyproj import Transformer
 
 app = Flask(__name__)
 
@@ -9,7 +10,7 @@ app = Flask(__name__)
 db_config = {
     'dbname': 'TransportationEvents',
     'user': 'postgres',
-    'password': 'shaheen1',
+    'password': 'user',
     'host': 'localhost',
     'port': '5432'
 }
@@ -73,6 +74,95 @@ def search():
             conn.close()
 
     return jsonify(results_list)
+
+@app.route('/visualize', methods=['GET'])
+def visualize():
+    person_id = request.args.get('personId')
+    start_time = request.args.get('startTime')
+    end_time = request.args.get('endTime')
+    
+    start_time = None if start_time == '' else start_time
+    end_time = None if end_time == '' else end_time
+    
+    conn = None
+    cur = None
+    try:
+        # Connect to your postgres DB
+        conn = psycopg2.connect(**db_config)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        # Prepare the query to fetch nodes with optional time filtering
+        node_query = """
+        SELECT DISTINCT Nodes.NodeID, Nodes.X, Nodes.Y
+        FROM Nodes
+        JOIN Links ON Nodes.NodeID = Links.FromNode OR Nodes.NodeID = Links.ToNode
+        LEFT JOIN Events ON Links.LinkID = Events.Link
+        WHERE (%s IS NULL OR Events.Person = %s)
+        AND (%s IS NULL OR Events.Time >= %s)
+        AND (%s IS NULL OR Events.Time <= %s);
+        """
+
+        # Execute the node query with parameters
+        cur.execute(node_query, (person_id, person_id, start_time, start_time, end_time, end_time))
+        nodes = cur.fetchall()
+
+        # Prepare the query to fetch links with optional time filtering
+        link_query = """
+        SELECT DISTINCT L.LinkID, FN.X AS FromX, FN.Y AS FromY, TN.X AS ToX, TN.Y AS ToY
+        FROM Links L
+        JOIN Nodes FN ON L.FromNode = FN.NodeID
+        JOIN Nodes TN ON L.ToNode = TN.NodeID
+        LEFT JOIN Events E ON L.LinkID = E.Link
+        WHERE (%s IS NULL OR E.Person = %s)
+        AND (%s IS NULL OR E.Time >= %s)
+        AND (%s IS NULL OR E.Time <= %s);
+        """
+
+        # Execute the link query with parameters
+        cur.execute(link_query, (person_id, person_id, start_time, start_time, end_time, end_time))
+        links = cur.fetchall()
+
+        
+        # Set up projection conversion from UTM to WGS84
+        transformer = Transformer.from_crs('epsg:32616', 'epsg:4326', always_xy=True)
+
+        # Convert node coordinates from UTM to WGS84 and calculate the average location to center the map
+        converted_nodes = [(transformer.transform(float(node['x']), float(node['y'])), node['nodeid']) for node in nodes]
+        if converted_nodes:
+            avg_lon = sum(coord[0][0] for coord in converted_nodes) / len(converted_nodes)
+            avg_lat = sum(coord[0][1] for coord in converted_nodes) / len(converted_nodes)
+            m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13)
+        else:
+            m = folium.Map(location=[0, 0], zoom_start=2)
+        
+        # Add nodes to the map
+        for (lon, lat), node_id in converted_nodes:
+            folium.Marker(
+                location=[lat, lon], 
+                popup=f"Node ID: {node_id}",
+            ).add_to(m)
+        
+        # Convert link coordinates from UTM to WGS84 and add to the map
+        for link in links:
+            from_coord = transformer.transform(float(link['fromx']), float(link['fromy']))
+            to_coord = transformer.transform(float(link['tox']), float(link['toy']))
+            folium.PolyLine(
+                locations=[from_coord[::-1], to_coord[::-1]],  # Flip coords because folium uses (lat, lon)
+                color="blue",
+                weight=2.5,
+                opacity=1
+            ).add_to(m)
+        
+        
+        # Generate and return map HTML
+        map_html = m._repr_html_()  # Get HTML representation of the map
+        return map_html  # Directly return the HTML content
+    except Exception as e:
+        app.logger.error('Unhandled exception', exc_info=e)
+        return f"An error occurred: {e}", 500
+    finally:
+        print("Visual called.")
+
 
 if __name__ == '__main__':
     app.run(debug=True)

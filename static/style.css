@@ -104,3 +104,27 @@ table.dataTable tbody tr:hover {
 .bottom-spacing {
     margin-bottom: 20px; /* Adjust the space as needed */
 }
+
+#mapid {
+    height: 400px; /* You can adjust the height as needed */
+    background: #ffffff;
+    margin-top: 20px; /* Space above the map area */
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Show Visualization button specific styling */
+#visualization-button {
+    background-color: #337ab7;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 20px; /* Space above the button */
+    margin-bottom: 20px; /* Space below the button */
+}
+
+#visualization-button:hover {
+    background-color: #286090;
+}

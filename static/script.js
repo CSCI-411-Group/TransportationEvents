@@ -3,43 +3,56 @@ $(document).ready(function() {
     
     function updateRequiredAttributes() {
         // Enable the appropriate input based on the selected search type
-        var searchType = $(this).val();
-        if ($('#searchByPerson').is(':checked')) {
-            $('#personId').prop('disabled', false).val('');
-            $('#linkId').prop('disabled', true).val('');
-            $('#linkIdLinkTable').prop('disabled', true).val('');
-            $('#timeRange').hide().val('');
+        var searchType = $('input[name="searchType"]:checked').val();
+        
+        // Disable all inputs first
+        $('#personId, #linkId, #linkIdLinkTable, #visPersonId, #visStartTime, #visEndTime').prop('disabled', true).val('');
+        $('#timeRange, #visualizationOptions').hide();
 
-
-        } else if ($('#searchByLink').is(':checked')) {
-
-            $('#personId').prop('disabled', true).val('');
-            $('#linkId').prop('disabled', false).val('');
-            $('#linkIdLinkTable').prop('disabled', true).val('');
-            $('#timeRange').show().val('');
-        }
-        else{
-            $('#personId').prop('disabled', true).val('');
-            $('#linkId').prop('disabled', true).val('');
-            $('#linkIdLinkTable').prop('disabled', false).val('');
-            $('#timeRange').hide().val('');
+        switch(searchType) {
+            case 'personId':
+                $('#personId').prop('disabled', false);
+                $('#timeRange').hide();
+                break;
+            case 'linkId':
+                $('#linkId').prop('disabled', false);
+                $('#timeRange').show();
+                break;
+            case 'linkIdLinkTable':
+                $('#linkIdLinkTable').prop('disabled', false);
+                $('#timeRange').hide();
+                break;
+            case 'visualization':
+                $('#visualizationOptions').show();
+                $('#visPersonId, #visStartTime, #visEndTime').prop('disabled', false);
+                break;
         }
     }
 
-
+    // Initialize the form state
+    updateRequiredAttributes();
+    
     $('input[name="searchType"]').change(updateRequiredAttributes);
-
 
     searchForm.on('submit', function(e) {
         e.preventDefault();
         var searchType = $('input[name="searchType"]:checked').val();
         var searchId = $('#' + searchType).val();
-        var startTime = searchType === 'linkId' ? $('#startTime').val() : null;
-        var endTime = searchType === 'linkId' ? $('#endTime').val() : null;
-        searchEvents(searchType, searchId, startTime, endTime);
+        var startTime = $('#startTime').val();
+        var endTime = $('#endTime').val();
+        
+        // For visualization, you might want to call a different function or the same function with additional parameters
+        if(searchType === 'visualization') {
+            var visPersonId = $('#visPersonId').val();
+            var visStartTime = $('#visStartTime').val();
+            var visEndTime = $('#visEndTime').val();
+            // Add here the function to handle visualization, e.g., visualizeEvents(visPersonId, visStartTime, visEndTime);
+        } else {
+            // Existing functionality for searching events
+            searchEvents(searchType, searchId, startTime, endTime);
+        }
     });
 });
-
 function searchEvents(searchType, searchId, startTime, endTime) {
     var queryParam = searchType + '=' + encodeURIComponent(searchId);
     
@@ -121,11 +134,32 @@ function searchEvents(searchType, searchId, startTime, endTime) {
         });
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+    var visualizationButton = document.getElementById('visualization-button');
 
+    if (visualizationButton) {
+        visualizationButton.addEventListener('click', function() {
+            // Retrieve the visualization parameters from the form
+            var visPersonId = document.getElementById('visPersonId').value;
+            var visStartTime = document.getElementById('visStartTime').value;
+            var visEndTime = document.getElementById('visEndTime').value;
 
+            // Construct the query string with parameters
+            var queryParams = new URLSearchParams({
+                personId: visPersonId,
+                startTime: visStartTime,
+                endTime: visEndTime
+            });
 
-
-
-
-
-
+            fetch('/visualize?' + queryParams.toString())
+            .then(response => response.text())  // Get the response text (HTML)
+            .then(data => {
+                const mapContainer = document.getElementById('mapid');
+                mapContainer.innerHTML = data;  // Insert the map HTML into the container
+            })
+            .catch(error => {
+                console.error('Error fetching the map:', error);
+            });
+        });
+    }
+});

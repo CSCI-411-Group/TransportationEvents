@@ -18,6 +18,9 @@
         .centered-table td {
             text-align: center;
         }
+        #mapid {
+            height: 400px; /* You can adjust the height as needed */
+        }
     </style>
 </head>
 <body>
@@ -37,7 +40,7 @@
     <label for="searchByLink">Link ID (Link Information)</label>
     <input type="text" id="linkIdLinkTable" name="searchId" disabled class="bottom-spacing" required>
     
-      
+    
     <div id="timeRange" class="time-range-spacing" style="display: none;">
         <label for="startTime">Start Time:</label>
         <input type="time" id="startTime" name="startTime">
@@ -48,8 +51,32 @@
 
     </div>
 
+
+    <input type="radio" id="searchByVisualization" name="searchType" value="visualization">
+    <label for="searchByVisualization">Visualization</label>
+
+    <div id="visualizationOptions" style="display: none;">
+        <label for="visPersonId">Person ID for Visualization:</label>
+        <input type="text" id="visPersonId" name="visPersonId" disabled>
+
+        <label for="visStartTime">Start Time:</label>
+        <input type="time" id="visStartTime" name="visStartTime" disabled>
+
+        <label for="visEndTime">End Time:</label>
+        <input type="time" id="visEndTime" name="visEndTime" disabled>
+        <button type="button" id="resetTime">Reset Time</button>
+
+    </div>
+
+
     <button type="submit">Search</button>
+    <button type="button" id="visualization-button">Show Visualization</button>
+
 </form>
+
+<div id="mapid">
+    <!-- The map will be inserted here by the JavaScript -->
+</div>
 
 <div id="events">
     <!-- The DataTable will be inserted here -->

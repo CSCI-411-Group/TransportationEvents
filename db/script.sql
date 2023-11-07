@@ -154,17 +154,18 @@ WHERE
     L.LinkID = '7735018_0';
 
 --4.c
-SELECT
-    Person,
-    SUM(Distance) AS TotalDistanceWalked
-FROM
-    Events
-WHERE 
-    Mode = 'walk'
-GROUP BY 
-    Person
-ORDER BY 
-    TotalDistanceWalked DESC;
+SELECT  
+    Person, 
+    SUM(Distance) AS TotalDistanceWalked 
+FROM  
+    Events  
+WHERE  
+    Type = 'travelled' AND  
+    Mode = 'walk' 
+GROUP BY  
+    Person 
+ORDER BY  
+    TotalDistanceWalked DESC; 
 
 
 --4.d
