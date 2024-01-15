@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 import psycopg2
+import time
 
 
 db_config = {
@@ -143,7 +144,13 @@ def insertEventsFromXml(xml_file):
 
 nodesLinksXmlFile = "network.xml"
 eventsXmlFile = "output_events.xml"
-#insertNodesFromXml(nodesLinksXmlFile)
+
+start_time = time.perf_counter()
+insertNodesFromXml(nodesLinksXmlFile)
 #insertLinksFromXml(nodesLinksXmlFile)
 #insertEventsFromXml(eventsXmlFile)
-print("DONE2")
+end_time = time.perf_counter()
+
+time_taken = end_time - start_time
+minutes, seconds = divmod(time_taken, 60)
+print(f"Database loaded!\nTime taken: {int(minutes)} min {int(seconds)} sec")
