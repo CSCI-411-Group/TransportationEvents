@@ -14,13 +14,12 @@ db_config = {
 }
 
 
-def insertNodesFromXml(xml_file):
+def insertNodesFromXml(xml_file, conn):
     # Parse the XML file
     parser = etree.XMLParser(remove_blank_text=True)
     tree = etree.parse(xml_file, parser=parser)
     root = tree.getroot()
     # Connect to the PostgreSQL database
-    conn = psycopg2.connect(**db_config)
     cursor = conn.cursor(cursor_factory=NamedTupleCursor)
 
     try:
@@ -47,14 +46,12 @@ def insertNodesFromXml(xml_file):
         conn.close()
 
 
-def insertLinksFromXml(xml_file):
+def insertLinksFromXml(xml_file, conn):
     # Parse the XML file
     parser = etree.XMLParser(remove_blank_text=True)
     tree = etree.parse(xml_file, parser=parser)
     root = tree.getroot()
 
-    # Connect to the PostgreSQL database
-    conn = psycopg2.connect(**db_config)
     cursor = conn.cursor(cursor_factory=NamedTupleCursor)
 
     try:
@@ -87,13 +84,12 @@ def insertLinksFromXml(xml_file):
         conn.close()
 
 
-def insertEventsFromXml(xml_file):
+def insertEventsFromXml(xml_file, conn):
     # Parse the XML file
     tree = ET.parse(xml_file)
     root = tree.getroot()
 
     # Connect to the PostgreSQL database
-    conn = psycopg2.connect(**db_config)
     cursor = conn.cursor()
 
     try:
@@ -151,14 +147,15 @@ def insertEventsFromXml(xml_file):
         conn.close()
 
 
+conn = psycopg2.connect(**db_config)
 
 nodesLinksXmlFile = "network.xml"
 eventsXmlFile = "output_events.xml"
 
 start_time = time.perf_counter()
-#insertNodesFromXml(nodesLinksXmlFile)
-#insertLinksFromXml(nodesLinksXmlFile)
-insertEventsFromXml(eventsXmlFile)
+#insertNodesFromXml(nodesLinksXmlFile, conn)
+#insertLinksFromXml(nodesLinksXmlFile, conn)
+#insertEventsFromXml(eventsXmlFile, conn)
 end_time = time.perf_counter()
 
 time_taken = end_time - start_time
