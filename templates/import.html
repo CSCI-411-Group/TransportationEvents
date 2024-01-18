@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload XML Files</title>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.3/socket.io.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}"></head>
+<body>
+
+    <h1>Upload Network.xml and output_events.xml</h1>
+    <p>Drag and drop or click to browse for XML files</p>
+
+    <div id="drop-area" ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
+        <div>Drop files here</div>
+        <input type="file" id="file-input" multiple onchange="handleFiles(this.files)">
+    </div>
+
+    <button onclick="browseFiles()">Browse</button>
+
+    <button onclick="processFiles()">Process</button>
+
+
+    <div id="file-list">
+        <!-- Display selected file names here -->
+    </div>
+
+    <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+        <div id="progress-label">Processing...</div>
+        <div id="file1_flag">Network (Nodes) File Processing Complete!</div>
+        <div id="file2_flag">Network (Links) File Processing Complete!</div>
+        <div id="completion-flag">All Processing Complete!</div>
+    </div>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port + '/progress');
+        var progressBar = document.getElementById('progress-bar');
+        var progressLabel = document.getElementById('progress-label');
+        var file1Flag = document.getElementById('file1_flag');
+        var file2Flag = document.getElementById('file2_flag');
+        var completionFlag = document.getElementById('completion-flag');
+
+        socket.on('update_progress', function(data) {
+            
+            if (data.value === -1) {
+                progressBar.style.backgroundColor = 'red';
+                progressLabel.innerText = 'Error during processing';
+            } else {
+                progressBar.style.width = data.value + '%';
+                progressLabel.innerText = 'Processing: ' + data.value + '%';
+                progressLabel.style.display = 'block';  // Show the label during processing
+
+                if (data.value === 100 && data.flag===1) {
+                    // Display completion flag when processing is complete
+                    file1Flag.style.display = 'block';
+
+                }
+                else if(data.value === 100 && data.flag===2){
+                    file2Flag.style.display = 'block';
+                    window.location.href = '{{ url_for("render_another_page") }}';
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
