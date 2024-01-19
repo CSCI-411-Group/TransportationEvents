@@ -200,20 +200,7 @@ table.dataTable tbody tr:hover {
     font-weight: bold;
 }
 
-#completion-flag {
-    display: none;
-    margin-top: 10px;
-    color: green;
-    font-weight: bold;
-}
-#file1_flag {
-    display: none;
-    margin-top: 10px;
-    color: green;
-    font-weight: bold;
-}
-#file2_flag {
-    display: none;
+#processingFilesProgress {
     margin-top: 10px;
     color: green;
     font-weight: bold;

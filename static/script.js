@@ -1,6 +1,8 @@
+var existingFiles = [];
+
 $(document).ready(function() {
     var searchForm = $('#search-form');
-    
+
     function updateRequiredAttributes() {
         // Enable the appropriate input based on the selected search type
         var searchType = $('input[name="searchType"]:checked').val();
@@ -182,11 +184,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+
 function handleFiles(files) {
     // Display file names
     let fileList = document.getElementById('file-list');
 
-    
+    existingFiles = existingFiles.concat(Array.from(files));
+
     let numberOfFiles = fileList.querySelectorAll('p').length;
     if(numberOfFiles==2){
         fileList.innerHTML = "";
@@ -214,22 +218,22 @@ function browseFiles() {
 }
 
 function processFiles(){
-    let files = document.getElementById('file-input').files;
+    const formData = new FormData();
+
     var progressBarContainer = document.getElementById('progress-bar-container');
 
     progressBarContainer.style.display = 'block';
-
-    if(files.length === 0){
+    for (const file of existingFiles) {
+        formData.append('files', file);
+    }
+    
+    if(existingFiles.length === 0){
         alert("Error: Upload 2 Files");
         return;
     }
-    let formData = new FormData();
-    for (const file of files) {
-        formData.append('files', file);
-    }
-    fetch('/importData',{
+    fetch('/importData', {
         method: 'POST',
-        body: formData
+        body: formData,
     })
     .catch(error => console.error('Error:', error));
 

@@ -29,9 +29,13 @@
     <div id="progress-bar-container">
         <div id="progress-bar"></div>
         <div id="progress-label">Processing...</div>
-        <div id="file1_flag">Network (Nodes) File Processing Complete!</div>
-        <div id="file2_flag">Network (Links) File Processing Complete!</div>
-        <div id="completion-flag">All Processing Complete!</div>
+        <div id="processingFilesProgress">
+            <div id="file1_flag" style="display: none;">Network (Nodes) File Processing Complete!<span id="check1">✔</span></div>
+            <div id="file2_flag" style="display: none;">Network (Links) File Processing Complete!<span id="check2">✔</span></div>
+            <div id="file3_flag" style="display: none;">Events File Processing Complete!<span id="check3">✔</span></div>
+            <div id="completion-flag" style="display: none;">All Processing Complete!</div>
+        </div> 
+        <span id="completion-count">0 out of 3 completed files</span>
     </div>
     <script>
         var socket = io.connect('http://' + document.domain + ':' + location.port + '/progress');
@@ -39,7 +43,11 @@
         var progressLabel = document.getElementById('progress-label');
         var file1Flag = document.getElementById('file1_flag');
         var file2Flag = document.getElementById('file2_flag');
+        var file3Flag = document.getElementById('file3_flag');
+
         var completionFlag = document.getElementById('completion-flag');
+        var completionCount = document.getElementById('completion-count');
+        var completedFilesCount = 0;
 
         socket.on('update_progress', function(data) {
             
@@ -51,14 +59,28 @@
                 progressLabel.innerText = 'Processing: ' + data.value + '%';
                 progressLabel.style.display = 'block';  // Show the label during processing
 
-                if (data.value === 100 && data.flag===1) {
-                    // Display completion flag when processing is complete
-                    file1Flag.style.display = 'block';
+                if (data.value === 100) {
+                    // Display completion flag and update checkmark
+                    if (data.flag === 1 && !file1Flag.classList.contains('completed')) {
+                        file1Flag.style.display = 'block';
+                        document.getElementById('check1').style.display = 'block';
+                        file1Flag.classList.add('completed');
+                        completedFilesCount++;
+                    } else if (data.flag === 2 && !file2Flag.classList.contains('completed')) {
+                        file2Flag.style.display = 'block';
+                        document.getElementById('check2').style.display = 'block';
+                        file2Flag.classList.add('completed');
+                        completedFilesCount++;
+                    } else if (data.flag === 3 && !file3Flag.classList.contains('completed')) {
+                        file3Flag.style.display = 'block';
+                        document.getElementById('check3').style.display = 'block';
+                        file3Flag.classList.add('completed');
+                        window.location.href = '{{ url_for("render_another_page") }}';
+                        completedFilesCount++;
+                    }
 
-                }
-                else if(data.value === 100 && data.flag===2){
-                    file2Flag.style.display = 'block';
-                    window.location.href = '{{ url_for("render_another_page") }}';
+                    // Update completion count
+                    completionCount.innerText = completedFilesCount + ' out of 3 completed files';
                 }
             }
         });

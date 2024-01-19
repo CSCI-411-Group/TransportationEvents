@@ -31,7 +31,88 @@ def time_to_seconds(time_str):
     hours, minutes = map(int, time_str.split(':'))
     return hours * 3600 + minutes * 60
 
-def insertLinksFromXml(xml_data, conn, progress_callback):
+def insertEventsFromXml(xml_file, conn):
+    # Parse the XML file
+
+    parser = etree.XMLParser(remove_blank_text=True)
+    root = etree.fromstring(xml_file, parser=parser)
+    cursor = conn.cursor(cursor_factory=NamedTupleCursor)
+
+    # Connect to the PostgreSQL database
+    cursor = conn.cursor()
+
+    total_records = len(root.findall('.//event'))
+    half_point = total_records // 2
+    processed_records = 0
+    try:
+        # Iterate through event elements and insert them into the "Events" table
+        events = []
+        for event_data in tqdm(root.findall('.//event'), desc='Processing', position=0, leave=True):
+
+            processed_records += 1
+            progress_percentage = int(processed_records / total_records * 100)
+
+            if processed_records == half_point:
+                progress_percentage = 50  # Set percentage to 50% when half of records are processed
+
+
+            time = float(event_data.get('time'))
+            event_type = event_data.get('type')
+            
+            # Extract other optional fields (replace None with NULL)
+            departure_id = event_data.get('departureId', None)
+            transit_line_id = event_data.get('transitLineId', None)
+            request = event_data.get('request', None)
+            act_type = event_data.get('actType', None)
+            purpose = event_data.get('purpose', None)
+            vehicle = event_data.get('vehicle', None)
+            amount = float(event_data.get('amount', None)) if event_data.get('amount') is not None else None
+            transaction_partner = event_data.get('transactionPartner', None)
+            transit_route_id = event_data.get('transitRouteId', None)
+            relative_position = float(event_data.get('relativePosition', None)) if event_data.get('relative_position') is not None else None
+            vehicle_id = event_data.get('vehicleId', None)
+            task_index = float(event_data.get('taskIndex', None)) if event_data.get('task_index') is not None else None
+            network_mode = event_data.get('networkMode', None)
+            mode = event_data.get('mode', None)
+            distance = float(event_data.get('distance', None)) if event_data.get('distance') is not None else None
+            driver_id = event_data.get('driverId', None)
+            x = float(event_data.get('x', None)) if event_data.get('x') is not None else None
+            y = float(event_data.get('y', None)) if event_data.get('y') is not None else None
+            agent = event_data.get('agent', None)
+            destination_stop = event_data.get('destinationStop', None)
+            dvrp_mode = event_data.get('dvrpMode', None)
+            facility = event_data.get('facility', None)
+            task_type = event_data.get('taskType', None)
+            leg_mode = event_data.get('legMode', None)
+            person = event_data.get('person', None)
+            delay = float(event_data.get('delay', None)) if event_data.get('delay') is not None else None
+            at_stop = event_data.get('atStop', None)
+            link_id = event_data.get('link', None)
+            dvrp_vehicle = event_data.get('dvrpVehicle', None)
+
+            events.append((time, event_type, departure_id, transit_line_id, request, act_type, purpose, vehicle, amount, transaction_partner, transit_route_id, relative_position, vehicle_id, task_index, 
+                          network_mode, mode, distance, driver_id, x, y, agent, destination_stop, dvrp_mode, facility, task_type, leg_mode, person, delay, at_stop, link_id, dvrp_vehicle))
+            
+            progress_thread = threading.Thread(target=update_progress, args=(progress_percentage,3))
+            progress_thread.start()
+
+
+        execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
+
+        # Commit the changes to the database
+        conn.commit()
+        update_progress(100,3)
+
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        conn.rollback()
+    
+    finally:
+        cursor.close()
+        conn.close()
+
+def insertLinksFromXml(xml_data, conn):
     # Parse the XML file
     parser = etree.XMLParser(remove_blank_text=True)
     root = etree.fromstring(xml_data, parser=parser)
@@ -39,7 +120,6 @@ def insertLinksFromXml(xml_data, conn, progress_callback):
     total_records = len(root.findall('.//link'))
     half_point = total_records // 2
     processed_records = 0
-
     try:
         # Iterate through link elements and insert them into the "Links" table
         links = []
@@ -67,12 +147,14 @@ def insertLinksFromXml(xml_data, conn, progress_callback):
             
             progress_thread = threading.Thread(target=update_progress, args=(progress_percentage,2))
             progress_thread.start()
-        
+
+  
         execute_batch(cursor, "INSERT INTO Links (LinkID, FromNode, ToNode, Length, FreeSpeed, Capacity, PermLanes, OneWay, Mode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", links)
-        
+     
         # Commit the changes to the database
         conn.commit()
-        progress_callback(100)
+            
+        update_progress(100,2)
 
         return 1
     
@@ -83,12 +165,12 @@ def insertLinksFromXml(xml_data, conn, progress_callback):
     finally:
         cursor.close()
 
-def insertNodesFromXml(xml_data, conn, progress_callback):
+def insertNodesFromXml(xml_data, conn):
     # Parse the XML file
     parser = etree.XMLParser(remove_blank_text=True)
     root = etree.fromstring(xml_data, parser=parser)
     cursor = conn.cursor(cursor_factory=NamedTupleCursor)
-    
+
     try:
         nodes = []
         total_records = len(root.findall('.//node'))
@@ -117,7 +199,8 @@ def insertNodesFromXml(xml_data, conn, progress_callback):
 
         # Commit the changes to the database
         conn.commit()
-        progress_callback(100)
+        
+        update_progress(100,1)
 
         return 1 
     
@@ -132,40 +215,29 @@ def insertNodesFromXml(xml_data, conn, progress_callback):
 def importRender():
     return render_template('import.html')
 
-def simulate_file_processing(xml_data, conn):
-    try:
-
-        # Perform the actual processing (replace this with your logic)
-        insertNodesFromXml(xml_data, conn)
-        insertLinksFromXml(xml_data, conn)
-
-
-    except Exception as e:
-        print('Error processing files:', str(e))
-        update_progress(-1)  # Indicate error
-
-
 @app.route('/importData', methods=['POST'])
 def import_data():
     try:
         conn = psycopg2.connect(**db_config)
 
-        # Assuming multiple XML files are sent in the 'files' field of FormData
         files = request.files.getlist('files')
 
+
         for xml_file in files:
-            xml_data = xml_file.read()
-            # Get the file name
-            file_name = xml_file.filename
+            if xml_file.filename == 'network.xml':
+                xml_data = xml_file.read()
+                insertNodesFromXml(xml_data, conn)
+                insertLinksFromXml(xml_data, conn)
 
-            # Perform different actions based on file name
-            if file_name == 'network.xml':
-                # Action for file1.xml
-                thread = threading.Thread(target=simulate_file_processing, args=(xml_data, conn))
-                thread.start()
-                return jsonify({'success': True}), 200
+        
+        for xml_file in files:
+            if xml_file.filename != 'network.xml':
+                xml_data = xml_file.read()
+                insertEventsFromXml(xml_data, conn)
 
-            conn.close()
+
+        return jsonify({'success': True}), 200
+        conn.close()
 
     except Exception as e:
         print('Error processing files:', str(e))
