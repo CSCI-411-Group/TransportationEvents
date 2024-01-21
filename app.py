@@ -49,12 +49,9 @@ def insertEventsFromXml(xml_file, conn):
         events = []
         for event_data in tqdm(root.findall('.//event'), desc='Processing', position=0, leave=True):
 
+
             processed_records += 1
             progress_percentage = int(processed_records / total_records * 100)
-
-            if processed_records == half_point:
-                progress_percentage = 50  # Set percentage to 50% when half of records are processed
-
 
             time = float(event_data.get('time'))
             event_type = event_data.get('type')
@@ -93,15 +90,25 @@ def insertEventsFromXml(xml_file, conn):
             events.append((time, event_type, departure_id, transit_line_id, request, act_type, purpose, vehicle, amount, transaction_partner, transit_route_id, relative_position, vehicle_id, task_index, 
                           network_mode, mode, distance, driver_id, x, y, agent, destination_stop, dvrp_mode, facility, task_type, leg_mode, person, delay, at_stop, link_id, dvrp_vehicle))
             
-            progress_thread = threading.Thread(target=update_progress, args=(progress_percentage,3))
-            progress_thread.start()
+            if progress_percentage==100:
+                break
 
+            if progress_percentage % 40 == 0:
+                progress_thread = threading.Thread(target=update_progress, args=(progress_percentage, 1))
+                progress_thread.start()
 
-        execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
+                progress_thread = threading.Thread(target=insertToDb, args=(events, cursor))
+                progress_thread.start()
+                events=[]
+
+        if events:
+            execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
+
 
         # Commit the changes to the database
         conn.commit()
-        update_progress(100,3)
+        progress_thread = threading.Thread(target=update_progress, args=(100,3))
+        progress_thread.start()
 
     
     except Exception as e:
@@ -109,7 +116,6 @@ def insertEventsFromXml(xml_file, conn):
         conn.rollback()
     
     finally:
-        cursor.close()
         conn.close()
 
 def insertLinksFromXml(xml_data, conn):
@@ -130,9 +136,6 @@ def insertLinksFromXml(xml_data, conn):
             processed_records += 1
             progress_percentage = int(processed_records / total_records * 100)
 
-            if processed_records == half_point:
-                progress_percentage = 50  # Set percentage to 50% when half of records are processed
-
             link_id = link_data.get('id')
             from_node_id = link_data.get('from')
             to_node_id = link_data.get('to')
@@ -145,16 +148,27 @@ def insertLinksFromXml(xml_data, conn):
 
             links.append((link_id, from_node_id, to_node_id, length, freespeed, capacity, permlanes, oneway, modes))
             
-            progress_thread = threading.Thread(target=update_progress, args=(progress_percentage,2))
-            progress_thread.start()
+            if progress_percentage==100:
+                break
+
+            if progress_percentage % 40 == 0:
+                progress_thread = threading.Thread(target=update_progress, args=(progress_percentage, 1))
+                progress_thread.start()
 
   
-        execute_batch(cursor, "INSERT INTO Links (LinkID, FromNode, ToNode, Length, FreeSpeed, Capacity, PermLanes, OneWay, Mode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", links)
-     
+                execute_batch(cursor, "INSERT INTO Links (LinkID, FromNode, ToNode, Length, FreeSpeed, Capacity, PermLanes, OneWay, Mode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", links)
+                links=[]
+            
+        if links:
+            execute_batch(cursor, "INSERT INTO Links (LinkID, FromNode, ToNode, Length, FreeSpeed, Capacity, PermLanes, OneWay, Mode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", links)
+
+
+
         # Commit the changes to the database
         conn.commit()
             
-        update_progress(100,2)
+        progress_thread = threading.Thread(target=update_progress, args=(100,2))
+        progress_thread.start()
 
         return 1
     
@@ -179,28 +193,33 @@ def insertNodesFromXml(xml_data, conn):
 
         for record in tqdm(root.findall('.//node'), desc='Processing', position=0, leave=True):
             # Process the record (replace this with your logic)
-
             processed_records += 1
             progress_percentage = int(processed_records / total_records * 100)
 
-            if processed_records == half_point:
-                progress_percentage = 50  # Set percentage to 50% when half of records are processed
 
             node_id = record.get('id')
             x = float(record.get('x'))
             y = float(record.get('y'))
             nodes.append((node_id, x, y))
 
-            progress_thread = threading.Thread(target=update_progress, args=(progress_percentage,1))
-            progress_thread.start()
+            if progress_percentage==100:
+                break
 
-        # Insert the nodes into the database
-        execute_batch(cursor, "INSERT INTO Nodes (NodeID, X, Y) VALUES (%s, %s, %s)", nodes)
+            if progress_percentage % 40 == 0:
+                progress_thread = threading.Thread(target=update_progress, args=(progress_percentage, 1))
+                progress_thread.start()
+                execute_batch(cursor, "INSERT INTO Nodes (NodeID, X, Y) VALUES (%s, %s, %s)", nodes)
+                nodes=[]
 
+        if nodes:
+            execute_batch(cursor, "INSERT INTO Nodes (NodeID, X, Y) VALUES (%s, %s, %s)", nodes)
+
+        
         # Commit the changes to the database
         conn.commit()
         
-        update_progress(100,1)
+        progress_thread = threading.Thread(target=update_progress, args=(100,1))
+        progress_thread.start()
 
         return 1 
     
@@ -210,6 +229,10 @@ def insertNodesFromXml(xml_data, conn):
     
     finally:
         cursor.close()
+
+def insertToDb(events, cursor):
+    execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
+
 
 @app.route('/', methods=['GET', 'POST'])
 def importRender():
@@ -227,9 +250,12 @@ def import_data():
             if xml_file.filename == 'network.xml':
                 xml_data = xml_file.read()
                 insertNodesFromXml(xml_data, conn)
+                progress_thread = threading.Thread(target=update_progress, args=(0,1))
+                progress_thread.start()
                 insertLinksFromXml(xml_data, conn)
 
-        
+        progress_thread = threading.Thread(target=update_progress, args=(0,1))
+        progress_thread.start()
         for xml_file in files:
             if xml_file.filename != 'network.xml':
                 xml_data = xml_file.read()
