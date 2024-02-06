@@ -222,7 +222,6 @@ function processFiles(){
 
     var progressBarContainers = document.getElementById('progress-bar-container');
 
-    progressBarContainers.style.display = 'block';
     for (const file of existingFiles) {
         formData.append('files', file);
     }
@@ -231,6 +230,8 @@ function processFiles(){
         alert("Error: Upload 2 Files");
         return;
     }
+    progressBarContainers.style.display = 'block';
+
     fetch('/importData', {
         method: 'POST',
         body: formData,

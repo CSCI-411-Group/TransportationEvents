@@ -7,6 +7,11 @@ select *
 from events
 
 
+
+delete from events
+delete from links
+delete from nodes
+
 drop table events
 
 SELECT COUNT(*) AS NodeCount
@@ -154,18 +159,18 @@ WHERE
     L.LinkID = '7735018_0';
 
 --4.c
-SELECT  
-    Person, 
-    SUM(Distance) AS TotalDistanceWalked 
-FROM  
-    Events  
+SELECT
+    Person,
+    SUM(Distance) AS TotalDistanceWalked
+FROM
+    Events
 WHERE  
-    Type = 'travelled' AND  
-    Mode = 'walk' 
+    Type = 'travelled' AND
+    Mode = 'walk'
 GROUP BY  
-    Person 
+    Person
 ORDER BY  
-    TotalDistanceWalked DESC; 
+    TotalDistanceWalked DESC;
 
 
 --4.d
