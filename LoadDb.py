@@ -3,23 +3,24 @@ import time
 import psycopg2
 from lxml import etree
 from psycopg2.extras import execute_batch, NamedTupleCursor
-
+import os
 
 db_config = {
     'dbname': 'TransportationEvents',
     'user': 'postgres',
-    'password': 'shaheen1',
+    'password': '.',
     'host': 'localhost',
     'port': '5432'
 }
 
 
-def insertNodesFromXml(xml_file, conn):
+def insertNodesFromXml(xml_file, db_config):
     # Parse the XML file
     parser = etree.XMLParser(remove_blank_text=True)
     tree = etree.parse(xml_file, parser=parser)
     root = tree.getroot()
     # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**db_config)
     cursor = conn.cursor(cursor_factory=NamedTupleCursor)
 
     try:
@@ -46,12 +47,13 @@ def insertNodesFromXml(xml_file, conn):
         conn.close()
 
 
-def insertLinksFromXml(xml_file, conn):
+def insertLinksFromXml(xml_file, db_config):
     # Parse the XML file
     parser = etree.XMLParser(remove_blank_text=True)
     tree = etree.parse(xml_file, parser=parser)
     root = tree.getroot()
 
+    conn = psycopg2.connect(**db_config)
     cursor = conn.cursor(cursor_factory=NamedTupleCursor)
 
     try:
@@ -84,12 +86,13 @@ def insertLinksFromXml(xml_file, conn):
         conn.close()
 
 
-def insertEventsFromXml(xml_file, conn):
+def insertEventsFromXml(xml_file, db_config):
     # Parse the XML file
     tree = ET.parse(xml_file)
     root = tree.getroot()
 
     # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**db_config)
     cursor = conn.cursor()
 
     try:
@@ -147,15 +150,13 @@ def insertEventsFromXml(xml_file, conn):
         conn.close()
 
 
-conn = psycopg2.connect(**db_config)
-
-nodesLinksXmlFile = "network.xml"
-eventsXmlFile = "output_events.xml"
+nodesLinksXmlFile = os.path.join("data", "network.xml")
+eventsXmlFile = os.path.join("data", "output_events.xml")
 
 start_time = time.perf_counter()
-#insertNodesFromXml(nodesLinksXmlFile, conn)
-#insertLinksFromXml(nodesLinksXmlFile, conn)
-#insertEventsFromXml(eventsXmlFile, conn)
+insertNodesFromXml(nodesLinksXmlFile, db_config)
+insertLinksFromXml(nodesLinksXmlFile, db_config)
+insertEventsFromXml(eventsXmlFile, db_config)
 end_time = time.perf_counter()
 
 time_taken = end_time - start_time
