@@ -220,9 +220,9 @@ function browseFiles() {
 function processFiles(){
     const formData = new FormData();
 
-    var progressBarContainer = document.getElementById('progress-bar-container');
+    var progressBarContainers = document.getElementById('progress-bar-container');
 
-    progressBarContainer.style.display = 'block';
+    progressBarContainers.style.display = 'block';
     for (const file of existingFiles) {
         formData.append('files', file);
     }
