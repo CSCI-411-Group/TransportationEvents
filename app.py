@@ -10,9 +10,12 @@ from tqdm import tqdm
 import threading
 import time
 from flask_socketio import SocketIO
+import secrets
+import uuid
 
 app = Flask(__name__)
-
+app.config['SESSION_TYPE'] = 'filesystem' 
+app.secret_key = str(uuid.uuid4()) 
 socketio = SocketIO(app)
 #connection (change this based on your db)
 
@@ -90,15 +93,13 @@ def insertEventsFromXml(xml_file, conn):
             events.append((time, event_type, departure_id, transit_line_id, request, act_type, purpose, vehicle, amount, transaction_partner, transit_route_id, relative_position, vehicle_id, task_index, 
                           network_mode, mode, distance, driver_id, x, y, agent, destination_stop, dvrp_mode, facility, task_type, leg_mode, person, delay, at_stop, link_id, dvrp_vehicle))
             
-            if progress_percentage==100:
-                break
-
+        
             if progress_percentage % 40 == 0:
-                progress_thread = threading.Thread(target=update_progress, args=(progress_percentage, 1))
+                progress_thread = threading.Thread(target=update_progress, args=(progress_percentage, 3))
                 progress_thread.start()
+                
+                execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
 
-                progress_thread = threading.Thread(target=insertToDb, args=(events, cursor))
-                progress_thread.start()
                 events=[]
 
         if events:
@@ -107,8 +108,7 @@ def insertEventsFromXml(xml_file, conn):
 
         # Commit the changes to the database
         conn.commit()
-        progress_thread = threading.Thread(target=update_progress, args=(100,3))
-        progress_thread.start()
+        update_progress(100,3)
 
     
     except Exception as e:
@@ -148,9 +148,7 @@ def insertLinksFromXml(xml_data, conn):
 
             links.append((link_id, from_node_id, to_node_id, length, freespeed, capacity, permlanes, oneway, modes))
             
-            if progress_percentage==100:
-                break
-
+    
             if progress_percentage % 40 == 0:
                 progress_thread = threading.Thread(target=update_progress, args=(progress_percentage, 1))
                 progress_thread.start()
@@ -167,9 +165,7 @@ def insertLinksFromXml(xml_data, conn):
         # Commit the changes to the database
         conn.commit()
             
-        progress_thread = threading.Thread(target=update_progress, args=(100,2))
-        progress_thread.start()
-
+        update_progress(100,2)
         return 1
     
     except Exception as e:
@@ -202,9 +198,6 @@ def insertNodesFromXml(xml_data, conn):
             y = float(record.get('y'))
             nodes.append((node_id, x, y))
 
-            if progress_percentage==100:
-                break
-
             if progress_percentage % 40 == 0:
                 progress_thread = threading.Thread(target=update_progress, args=(progress_percentage, 1))
                 progress_thread.start()
@@ -218,8 +211,7 @@ def insertNodesFromXml(xml_data, conn):
         # Commit the changes to the database
         conn.commit()
         
-        progress_thread = threading.Thread(target=update_progress, args=(100,1))
-        progress_thread.start()
+        update_progress(100,1)
 
         return 1 
     
@@ -229,14 +221,6 @@ def insertNodesFromXml(xml_data, conn):
     
     finally:
         cursor.close()
-
-def insertToDb(events, cursor):
-    execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
-
-
-@app.route('/', methods=['GET', 'POST'])
-def importRender():
-    return render_template('import.html')
 
 @app.route('/importData', methods=['POST'])
 def import_data():
@@ -261,6 +245,7 @@ def import_data():
                 xml_data = xml_file.read()
                 insertEventsFromXml(xml_data, conn)
 
+        session['file_imported'] = True
 
         return jsonify({'success': True}), 200
         conn.close()
@@ -273,9 +258,18 @@ def update_progress(value, fileFlag):
     with app.app_context():
         socketio.emit('update_progress', {'value': value, 'flag':fileFlag}, namespace='/progress')
 
+@app.route('/', methods=['GET', 'POST'])
+def importRender():
+    if 'file_imported' in session and session['file_imported']:
+        return render_template('index.html')
+
+    return render_template('import.html')
+
 @app.route('/Home')
 def render_another_page():
-    return render_template('index.html')
+    if 'file_imported' in session and session['file_imported']:
+        return render_template('index.html')
+    return render_template('import.html')
 
 @app.route('/search', methods=['GET'])
 def search():

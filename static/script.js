@@ -219,6 +219,7 @@ function browseFiles() {
 
 function processFiles(){
     const formData = new FormData();
+    let fileList = document.getElementById('file-list');
 
     var progressBarContainers = document.getElementById('progress-bar-container');
 
@@ -226,8 +227,11 @@ function processFiles(){
         formData.append('files', file);
     }
     
-    if(existingFiles.length === 0){
+    if(existingFiles.length < 2 || existingFiles.length>2){
         alert("Error: Upload 2 Files");
+        existingFiles.length=0
+        fileList.innerHTML = "";
+
         return;
     }
     progressBarContainers.style.display = 'block';

@@ -7,36 +7,54 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.3/socket.io.js"></script>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}"></head>
+
+
+    <style>
+        body, html {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    </style>
 <body>
 
-    <h1>Upload Network.xml and output_events.xml</h1>
-    <p>Drag and drop or click to browse for XML files!</p>
+    <div class="importFiles">
+        <h1>Upload Network.xml and output_events.xml</h1>
+        <p>Drag and drop or click to browse for XML files!</p>
 
-    <div id="drop-area" ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
-        <div>Drop files here</div>
-        <input type="file" id="file-input" multiple onchange="handleFiles(this.files)">
+        <div id="drop-area" ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
+            <div id="drop-area-text">Drop files here</div>
+            <input type="file" id="file-input" multiple onchange="handleFiles(this.files)">
+            <button id="browse-btn" onclick="browseFiles()">Browse</button>
+            <div id="file-list">
+                <!-- Display selected file names here -->
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button onclick="processFiles()">Process</button>
+        </div>
+
+        <div id="progress-bar-container">
+            <div id="progress-bar"></div>
+            <div id="progress-label">Processing...</div>
+            <div id="processingFilesProgress">
+                <div id="file1_flag" style="display: none;">Network (Nodes) File Processing Complete!<span id="check1">✔</span></div>
+                <div id="file2_flag" style="display: none;">Network (Links) File Processing Complete!<span id="check2">✔</span></div>
+                <div id="file3_flag" style="display: none;">Events File Processing Complete!<span id="check3">✔</span></div>
+                <div id="completion-flag" style="display: none;">All Processing Complete!</div>
+            </div> 
+            <span id="completion-count">0 out of 3 completed files</span>
+        </div>
+      
+    
     </div>
 
-    <button onclick="browseFiles()">Browse</button>
 
-    <button onclick="processFiles()">Process</button>
-
-
-    <div id="file-list">
-        <!-- Display selected file names here -->
-    </div>
-
-    <div id="progress-bar-container">
-        <div id="progress-bar"></div>
-        <div id="progress-label">Processing...</div>
-        <div id="processingFilesProgress">
-            <div id="file1_flag" style="display: none;">Network (Nodes) File Processing Complete!<span id="check1">✔</span></div>
-            <div id="file2_flag" style="display: none;">Network (Links) File Processing Complete!<span id="check2">✔</span></div>
-            <div id="file3_flag" style="display: none;">Events File Processing Complete!<span id="check3">✔</span></div>
-            <div id="completion-flag" style="display: none;">All Processing Complete!</div>
-        </div> 
-        <span id="completion-count">0 out of 3 completed files</span>
-    </div>
+    
+ 
     <script>
         var socket = io.connect('http://' + document.domain + ':' + location.port + '/progress');
         var progressBar = document.getElementById('progress-bar');
