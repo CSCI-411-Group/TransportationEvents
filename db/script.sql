@@ -1,28 +1,12 @@
-
-select *
-from nodes
-select *
-from links
-select *
-from events
-
-
-drop table events
-
-SELECT COUNT(*) AS NodeCount
-FROM Nodes;
-SELECT COUNT(*) AS NodeCount
-FROM links;
-SELECT COUNT(*) AS NodeCount
-FROM events;
+drop table events; 
+drop table links; 
+drop table nodes; 
 
 CREATE TABLE Nodes
 (
-
-    NodeID VARCHAR(20) PRIMARY KEY NOT NULL,
-
+    ID int PRIMARY KEY,
+    NodeID VARCHAR(20) NOT NULL,
     X DECIMAL(30, 15) NOT NULL,
-
     Y DECIMAL(30, 15) NOT NULL
 
 );
@@ -30,14 +14,12 @@ CREATE TABLE Nodes
 
 CREATE TABLE Links
 (
+    ID int PRIMARY KEY,
+    LinkID VARCHAR(20) NOT NULL,
 
-    LinkID VARCHAR(20) PRIMARY KEY NOT NULL,
+    FromNode int NOT NULL,
 
-    FromNode VARCHAR(20) NOT NULL,
-    -- NodeID in Nodes is (20) 
-
-    ToNode VARCHAR(20) NOT NULL,
-    -- NodeID in Nodes is (20) 
+    ToNode int NOT NULL,
 
     Length DECIMAL(30, 20) NOT NULL,
 
@@ -52,11 +34,9 @@ CREATE TABLE Links
     Mode VARCHAR(10) NOT NULL,
     -- Usually just car 
 
+    FOREIGN KEY (FromNode) REFERENCES Nodes(ID),
 
-
-    FOREIGN KEY (FromNode) REFERENCES Nodes(NodeID),
-
-    FOREIGN KEY (ToNode) REFERENCES Nodes(NodeID)
+    FOREIGN KEY (ToNode) REFERENCES Nodes(ID)
 
 );
 
@@ -67,6 +47,8 @@ CREATE TABLE Events
     Time NUMERIC(20, 1) NOT NULL,
 
     Type TEXT NOT NULL,
+
+    LinkID int,
 
     Link VARCHAR(20),
     -- FK to LinkID 
@@ -125,119 +107,11 @@ CREATE TABLE Events
 
     ActType TEXT,
 
-    LegMode VARCHAR(20),
+    LegMode VARCHAR(20)
 
-
-
-    FOREIGN KEY (Link) REFERENCES Links(LinkID)
+    -- FOREIGN KEY (LinkID) REFERENCES Links(ID)
 
 );
-
-
---4.a question
-SELECT *
-FROM Events
-WHERE Person = 'p_9031';
-
---4.b question
-SELECT
-    L.*,
-    N1.NodeID AS FromNodeID, N1.X AS FromNodeX, N1.Y AS FromNodeY,
-    N2.NodeID AS ToNodeID, N2.X AS ToNodeX, N2.Y AS ToNodeY
-FROM
-    Links L
-    JOIN
-    Nodes N1 ON L.FromNode = N1.NodeID
-    JOIN
-    Nodes N2 ON L.ToNode = N2.NodeID
-WHERE 
-    L.LinkID = '7735018_0';
-
---4.c
-SELECT  
-    Person, 
-    SUM(Distance) AS TotalDistanceWalked 
-FROM  
-    Events  
-WHERE  
-    Type = 'travelled' AND  
-    Mode = 'walk' 
-GROUP BY  
-    Person 
-ORDER BY  
-    TotalDistanceWalked DESC; 
-
-
---4.d
-WITH
-    StartTimes
-    AS
-    (
-        SELECT
-            Person,
-            Time AS StartTime,
-            link,
-            actType
-        FROM
-            Events
-        WHERE 
-        Type = 'actstart'
-    ),
-
-    EndTimes
-    AS
-    (
-        SELECT
-            Person,
-            Time AS EndTime,
-            link,
-            actType
-        FROM
-            Events
-        WHERE 
-        Type = 'actend'
-    )
-
-,
-    Duration
-    AS
-    (
-        SELECT
-            s.Person,
-            e.EndTime - s.StartTime AS ActivityDuration
-        FROM
-            StartTimes s
-            JOIN
-            EndTimes e ON s.Person = e.Person AND s.link = e.link AND s.actType = e.actType
-        WHERE 
-        e.EndTime > s.StartTime
-    )
-
-SELECT
-    Person,
-    AVG(ActivityDuration) AS AverageActivityTime
-FROM
-    Duration
-GROUP BY 
-    Person
-HAVING 
-    AVG(ActivityDuration) IS NOT NULL
-ORDER BY 
-    AverageActivityTime ASC;
-
-
---4.e
-SELECT
-    Person,
-    MIN(Time) AS EarliestDepartureTime
-FROM
-    Events
-WHERE 
-    Type = 'departure' AND LegMode = 'car'
-GROUP BY 
-    Person
-ORDER BY 
-    EarliestDepartureTime;
 
 --index
 CREATE INDEX idx_person ON Events (Person);

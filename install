@@ -1,11 +1,8 @@
 CREATE EXTENSION postgis;
 CREATE EXTENSION pgrouting;
 
--- Create a geometry column in your existing nodes table:
-ALTER TABLE nodes ADD COLUMN geom geometry(Point, 32616);
-UPDATE nodes SET geom = ST_SetSRID(ST_MakePoint(x, y), 32616);
-
-CREATE INDEX idx_nodex_geom ON nodes USING GIST(geom);
-
-ALTER TABLE links
-ADD COLUMN id SERIAL;
+-- get shortest distance
+SELECT * FROM pgr_dijkstra(
+    'SELECT id, fromnode  as source, tonode  as target, length as cost FROM links',
+    1, 27948
+);

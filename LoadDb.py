@@ -6,7 +6,7 @@ from psycopg2.extras import execute_batch, NamedTupleCursor
 import os
 
 db_config = {
-    'dbname': 'TransportationEvents',
+    'dbname': 'TransportationEvents', # TransportationEvents TranEvents2
     'user': 'postgres',
     'password': '.',
     'host': 'localhost',
@@ -26,14 +26,18 @@ def insertNodesFromXml(xml_file, db_config):
     try:
         # Iterate through nodes and insert them into the "Nodes" table
         nodes = []
+        id = 1
+        nodeid2id = {} # used when insert links to map original linkid to the new id
         for node in root.findall('.//node'):
             node_id = node.get('id')
             x = float(node.get('x'))
             y = float(node.get('y'))
-            nodes.append((node_id, x, y))
+            nodeid2id[node_id] = id
+            nodes.append((id, node_id, x, y))
+            id += 1
         
         # Insert the node into the database
-        execute_batch(cursor, "INSERT INTO Nodes (NodeID, X, Y) VALUES (%s, %s, %s)", nodes)
+        execute_batch(cursor, "INSERT INTO Nodes (id, NodeID, X, Y) VALUES (%s, %s, %s, %s)", nodes)
         
         # Commit the changes to the database
         conn.commit()
@@ -46,8 +50,10 @@ def insertNodesFromXml(xml_file, db_config):
         cursor.close()
         conn.close()
 
+    return nodeid2id
 
-def insertLinksFromXml(xml_file, db_config):
+
+def insertLinksFromXml(xml_file, db_config, nodeid2id):
     # Parse the XML file
     parser = etree.XMLParser(remove_blank_text=True)
     tree = etree.parse(xml_file, parser=parser)
@@ -59,6 +65,8 @@ def insertLinksFromXml(xml_file, db_config):
     try:
         # Iterate through link elements and insert them into the "Links" table
         links = []
+        id = 1
+        linkid2id = {} # used when insert events to map original linkid to the new id
         for link_data in root.findall('.//link'):
             link_id = link_data.get('id')
             from_node_id = link_data.get('from')
@@ -69,10 +77,12 @@ def insertLinksFromXml(xml_file, db_config):
             permlanes = float(link_data.get('permlanes'))
             oneway = int(link_data.get('oneway'))
             modes = link_data.get('modes')
-
-            links.append((link_id, from_node_id, to_node_id, length, freespeed, capacity, permlanes, oneway, modes))
+            linkid2id[link_id] = id
+            links.append((id, link_id, nodeid2id[from_node_id], nodeid2id[to_node_id], length, freespeed, capacity, permlanes, oneway, modes))
+            id += 1
+            
         
-        execute_batch(cursor, "INSERT INTO Links (LinkID, FromNode, ToNode, Length, FreeSpeed, Capacity, PermLanes, OneWay, Mode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", links)
+        execute_batch(cursor, "INSERT INTO Links (ID, LinkID, FromNode, ToNode, Length, FreeSpeed, Capacity, PermLanes, OneWay, Mode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", links)
         
         # Commit the changes to the database
         conn.commit()
@@ -85,8 +95,10 @@ def insertLinksFromXml(xml_file, db_config):
         cursor.close()
         conn.close()
 
+    return linkid2id
 
-def insertEventsFromXml(xml_file, db_config):
+
+def insertEventsFromXml(xml_file, db_config, linkid2id):
     # Parse the XML file
     tree = ET.parse(xml_file)
     root = tree.getroot()
@@ -130,13 +142,18 @@ def insertEventsFromXml(xml_file, db_config):
             person = event_data.get('person', None)
             delay = float(event_data.get('delay', None)) if event_data.get('delay') is not None else None
             at_stop = event_data.get('atStop', None)
-            link_id = event_data.get('link', None)
+            link = event_data.get('link', None) # original linkid from the xml file
+            if link:
+                link_id = linkid2id[link] # foriegn key to the links table
+            else:
+                link_id = None
+
             dvrp_vehicle = event_data.get('dvrpVehicle', None)
 
             events.append((time, event_type, departure_id, transit_line_id, request, act_type, purpose, vehicle, amount, transaction_partner, transit_route_id, relative_position, vehicle_id, task_index, 
-                          network_mode, mode, distance, driver_id, x, y, agent, destination_stop, dvrp_mode, facility, task_type, leg_mode, person, delay, at_stop, link_id, dvrp_vehicle))
+                          network_mode, mode, distance, driver_id, x, y, agent, destination_stop, dvrp_mode, facility, task_type, leg_mode, person, delay, at_stop, link, link_id, dvrp_vehicle))
 
-        execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
+        execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, LinkID,  DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
 
         # Commit the changes to the database
         conn.commit()
@@ -151,12 +168,12 @@ def insertEventsFromXml(xml_file, db_config):
 
 
 nodesLinksXmlFile = os.path.join("data", "network.xml")
-eventsXmlFile = os.path.join("data", "output_events.xml")
+eventsXmlFile = os.path.join("data", "events_1000.xml")
 
 start_time = time.perf_counter()
-insertNodesFromXml(nodesLinksXmlFile, db_config)
-insertLinksFromXml(nodesLinksXmlFile, db_config)
-insertEventsFromXml(eventsXmlFile, db_config)
+nodeid2id = insertNodesFromXml(nodesLinksXmlFile, db_config)
+linkid2id = insertLinksFromXml(nodesLinksXmlFile, db_config, nodeid2id)
+insertEventsFromXml(eventsXmlFile, db_config, linkid2id)
 end_time = time.perf_counter()
 
 time_taken = end_time - start_time
