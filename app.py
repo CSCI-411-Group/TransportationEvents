@@ -22,7 +22,7 @@ socketio = SocketIO(app)
 db_config = {
     'dbname': 'TransportationEvents',
     'user': 'postgres',
-    'password': 'shaheen1',
+    'password': '.',
     'host': 'localhost',
     'port': '5432'
 }
@@ -34,7 +34,7 @@ def time_to_seconds(time_str):
     hours, minutes = map(int, time_str.split(':'))
     return hours * 3600 + minutes * 60
 
-def insertEventsFromXml(xml_file, conn):
+def insertEventsFromXml(xml_file, conn, linkid2id):
     # Parse the XML file
 
     parser = etree.XMLParser(remove_blank_text=True)
@@ -87,11 +87,15 @@ def insertEventsFromXml(xml_file, conn):
             person = event_data.get('person', None)
             delay = float(event_data.get('delay', None)) if event_data.get('delay') is not None else None
             at_stop = event_data.get('atStop', None)
-            link_id = event_data.get('link', None)
+            link = event_data.get('link', None) # original linkid from the xml file
             dvrp_vehicle = event_data.get('dvrpVehicle', None)
+            if link:
+                link_id = linkid2id[link] # foriegn key to the links table
+            else:
+                link_id = None
 
             events.append((time, event_type, departure_id, transit_line_id, request, act_type, purpose, vehicle, amount, transaction_partner, transit_route_id, relative_position, vehicle_id, task_index, 
-                          network_mode, mode, distance, driver_id, x, y, agent, destination_stop, dvrp_mode, facility, task_type, leg_mode, person, delay, at_stop, link_id, dvrp_vehicle))
+                          network_mode, mode, distance, driver_id, x, y, agent, destination_stop, dvrp_mode, facility, task_type, leg_mode, person, delay, at_stop, link, link_id, dvrp_vehicle))
             
         
             if progress_percentage % 40 == 0:
@@ -103,7 +107,7 @@ def insertEventsFromXml(xml_file, conn):
                 events=[]
 
         if events:
-            execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
+            execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, LinkID, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
 
 
         # Commit the changes to the database
@@ -118,7 +122,7 @@ def insertEventsFromXml(xml_file, conn):
     finally:
         conn.close()
 
-def insertLinksFromXml(xml_data, conn):
+def insertLinksFromXml(xml_data, conn, nodeid2id):
     # Parse the XML file
     parser = etree.XMLParser(remove_blank_text=True)
     root = etree.fromstring(xml_data, parser=parser)
@@ -129,10 +133,9 @@ def insertLinksFromXml(xml_data, conn):
     try:
         # Iterate through link elements and insert them into the "Links" table
         links = []
-        
+        id = 1
+        linkid2id = {} # used when insert events to map original linkid to the new id
         for link_data in tqdm(root.findall('.//link'), desc='Processing', position=0, leave=True):
-
-            
             processed_records += 1
             progress_percentage = int(processed_records / total_records * 100)
 
@@ -145,8 +148,9 @@ def insertLinksFromXml(xml_data, conn):
             permlanes = float(link_data.get('permlanes'))
             oneway = int(link_data.get('oneway'))
             modes = link_data.get('modes')
-
-            links.append((link_id, from_node_id, to_node_id, length, freespeed, capacity, permlanes, oneway, modes))
+            linkid2id[link_id] = id
+            links.append((id, link_id, nodeid2id[from_node_id], nodeid2id[to_node_id], length, freespeed, capacity, permlanes, oneway, modes))
+            id += 1
             
     
             if progress_percentage % 40 == 0:
@@ -154,11 +158,11 @@ def insertLinksFromXml(xml_data, conn):
                 progress_thread.start()
 
   
-                execute_batch(cursor, "INSERT INTO Links (LinkID, FromNode, ToNode, Length, FreeSpeed, Capacity, PermLanes, OneWay, Mode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", links)
+                execute_batch(cursor, "INSERT INTO Links (ID, LinkID, FromNode, ToNode, Length, FreeSpeed, Capacity, PermLanes, OneWay, Mode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", links)
                 links=[]
             
         if links:
-            execute_batch(cursor, "INSERT INTO Links (LinkID, FromNode, ToNode, Length, FreeSpeed, Capacity, PermLanes, OneWay, Mode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", links)
+            execute_batch(cursor, "INSERT INTO Links (ID, LinkID, FromNode, ToNode, Length, FreeSpeed, Capacity, PermLanes, OneWay, Mode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", links)
 
 
 
@@ -166,7 +170,9 @@ def insertLinksFromXml(xml_data, conn):
         conn.commit()
             
         update_progress(100,2)
-        return 1
+
+
+        return linkid2id
     
     except Exception as e:
         print(f"Error: {e}")
@@ -183,6 +189,8 @@ def insertNodesFromXml(xml_data, conn):
 
     try:
         nodes = []
+        id = 1 # this is the primary key in the nodes table
+        nodeid2id = {} # used when insert links to map original linkid to the new id
         total_records = len(root.findall('.//node'))
         half_point = total_records // 2
         processed_records = 0
@@ -191,21 +199,21 @@ def insertNodesFromXml(xml_data, conn):
             # Process the record (replace this with your logic)
             processed_records += 1
             progress_percentage = int(processed_records / total_records * 100)
-
-
             node_id = record.get('id')
             x = float(record.get('x'))
             y = float(record.get('y'))
-            nodes.append((node_id, x, y))
+            nodeid2id[node_id] = id
+            nodes.append((id, node_id, x, y))
+            id += 1
 
             if progress_percentage % 40 == 0:
                 progress_thread = threading.Thread(target=update_progress, args=(progress_percentage, 1))
                 progress_thread.start()
-                execute_batch(cursor, "INSERT INTO Nodes (NodeID, X, Y) VALUES (%s, %s, %s)", nodes)
+                execute_batch(cursor, "INSERT INTO Nodes (id, NodeID, X, Y) VALUES (%s, %s, %s, %s)", nodes)
                 nodes=[]
 
         if nodes:
-            execute_batch(cursor, "INSERT INTO Nodes (NodeID, X, Y) VALUES (%s, %s, %s)", nodes)
+            execute_batch(cursor, "INSERT INTO Nodes (id, NodeID, X, Y) VALUES (%s, %s, %s, %s)", nodes)
 
         
         # Commit the changes to the database
@@ -213,7 +221,7 @@ def insertNodesFromXml(xml_data, conn):
         
         update_progress(100,1)
 
-        return 1 
+        return nodeid2id
     
     except Exception as e:
         print(f"Error: {e}")
@@ -221,6 +229,14 @@ def insertNodesFromXml(xml_data, conn):
     
     finally:
         cursor.close()
+
+def insertToDb(events, cursor):
+    execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
+
+
+@app.route('/', methods=['GET', 'POST'])
+def importRender():
+    return render_template('import.html')
 
 @app.route('/importData', methods=['POST'])
 def import_data():
@@ -233,17 +249,17 @@ def import_data():
         for xml_file in files:
             if xml_file.filename == 'network.xml':
                 xml_data = xml_file.read()
-                insertNodesFromXml(xml_data, conn)
+                nodeid2id = insertNodesFromXml(xml_data, conn)
                 progress_thread = threading.Thread(target=update_progress, args=(0,1))
                 progress_thread.start()
-                insertLinksFromXml(xml_data, conn)
+                linkid2id = insertLinksFromXml(xml_data, conn, nodeid2id)
 
         progress_thread = threading.Thread(target=update_progress, args=(0,1))
         progress_thread.start()
         for xml_file in files:
             if xml_file.filename != 'network.xml':
                 xml_data = xml_file.read()
-                insertEventsFromXml(xml_data, conn)
+                insertEventsFromXml(xml_data, conn, linkid2id)
 
         session['file_imported'] = True
 
@@ -323,21 +339,21 @@ def search():
 
     return jsonify(results_list)
 
-@app.route('/visualize', methods=['GET'])
+@app.route("/visualize", methods=["GET"])
 def visualize():
-    person_id = request.args.get('personId')
-    start_time = request.args.get('startTime')
-    end_time = request.args.get('endTime')
-    
-    if start_time and end_time:
+    person_id = request.args.get("personId")
+    start_time = request.args.get("startTime") or None
+    end_time = request.args.get("endTime") or None
+
+    if not person_id:
+        return "person_id is required!"
+    if start_time:
         start_time = time_to_seconds(start_time)
+    if end_time:
         end_time = time_to_seconds(end_time)
-    else:
-        start_time = None if start_time == '' else start_time
-        end_time = None if end_time == '' else end_time
     
-    
-    
+    print(person_id, start_time, end_time)
+
     conn = None
     cur = None
     try:
@@ -345,77 +361,120 @@ def visualize():
         conn = psycopg2.connect(**db_config)
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        # Prepare the query to fetch nodes with optional time filtering
-        node_query = """
-        SELECT DISTINCT Nodes.NodeID, Nodes.X, Nodes.Y
-        FROM Nodes
-        JOIN Links ON Nodes.NodeID = Links.FromNode OR Nodes.NodeID = Links.ToNode
-        LEFT JOIN Events ON Links.LinkID = Events.Link
-        WHERE (%s IS NULL OR Events.Person = %s)
-        AND (%s IS NULL OR Events.Time >= %s)
-        AND (%s IS NULL OR Events.Time <= %s);
+        # Prepare the query to fetch events associated with the links
+        event_query = """
+        SELECT DISTINCT  e.link, e.time, e.type, e.acttype,
+            from_node.x AS from_node_x, from_node.y AS from_node_y,
+            to_node.x AS to_node_x, to_node.y AS to_node_y
+        FROM events AS e
+        JOIN links AS l ON e.linkid = l.id
+        JOIN nodes AS from_node ON from_node.id = l.fromnode
+        JOIN nodes AS to_node ON to_node.id = l.tonode
+        WHERE (%s IS NULL OR e.person = %s)
+        AND (%s IS NULL OR e.time >= %s)
+        AND (%s IS NULL OR e.time <= %s)
+        AND e.acttype is not NULL
+        order by e.time;
         """
 
-        # Execute the node query with parameters
-        cur.execute(node_query, (person_id, person_id, start_time, start_time, end_time, end_time))
-        nodes = cur.fetchall()
+        # Execute the event query with parameters
+        cur.execute(
+            event_query,
+            (person_id, person_id, start_time, start_time, end_time, end_time),
+        )
 
-        # Prepare the query to fetch links with optional time filtering
-        link_query = """
-        SELECT DISTINCT L.LinkID, FN.X AS FromX, FN.Y AS FromY, TN.X AS ToX, TN.Y AS ToY
-        FROM Links L
-        JOIN Nodes FN ON L.FromNode = FN.NodeID
-        JOIN Nodes TN ON L.ToNode = TN.NodeID
-        LEFT JOIN Events E ON L.LinkID = E.Link
-        WHERE (%s IS NULL OR E.Person = %s)
-        AND (%s IS NULL OR E.Time >= %s)
-        AND (%s IS NULL OR E.Time <= %s);
-        """
-
-        # Execute the link query with parameters
-        cur.execute(link_query, (person_id, person_id, start_time, start_time, end_time, end_time))
-        links = cur.fetchall()
-
+        print(cur.query.decode('utf-8'))
         
-        # Set up projection conversion from UTM to WGS84
-        transformer = Transformer.from_crs('epsg:32616', 'epsg:4326', always_xy=True)
+        events = cur.fetchall()
+        print(events)
+        
+        if events:
+            # Calculate the average midpoint for each line
+            midpoints = [
+                (
+                    (event['from_node_x'] + event['to_node_x']) / 2,
+                    (event['from_node_y'] + event['to_node_y']) / 2
+                )
+                for event in events
+            ]
 
-        # Convert node coordinates from UTM to WGS84 and calculate the average location to center the map
-        converted_nodes = [(transformer.transform(float(node['x']), float(node['y'])), node['nodeid']) for node in nodes]
-        if converted_nodes:
-            avg_lon = sum(coord[0][0] for coord in converted_nodes) / len(converted_nodes)
-            avg_lat = sum(coord[0][1] for coord in converted_nodes) / len(converted_nodes)
-            m = folium.Map(location=[avg_lat, avg_lon], zoom_start=13)
-        else:
-            m = folium.Map(location=[0, 0], zoom_start=2)
-        
-        # Add nodes to the map
-        for (lon, lat), node_id in converted_nodes:
-            folium.Marker(
-                location=[lat, lon], 
-                popup=f"Node ID: {node_id}",
-            ).add_to(m)
-        
-        # Convert link coordinates from UTM to WGS84 and add to the map
-        for link in links:
-            from_coord = transformer.transform(float(link['fromx']), float(link['fromy']))
-            to_coord = transformer.transform(float(link['tox']), float(link['toy']))
+            # Set up projection conversion from UTM to WGS84
+            transformer = Transformer.from_crs("epsg:32616", "epsg:4326", always_xy=True)
+
+            # Calculate the average location of all midpoints and transform to WGS84
+            avg_midpoint_x = sum(midpoint[0] for midpoint in midpoints) / len(midpoints)
+            avg_midpoint_y = sum(midpoint[1] for midpoint in midpoints) / len(midpoints)
+            avg_midpoint_coords = transformer.transform(avg_midpoint_x, avg_midpoint_y)
+
+            m = folium.Map(location=[avg_midpoint_coords[1], avg_midpoint_coords[0]], zoom_start=10)
+
+            # Add nodes and edges to the graph
+            path_coordinates = []
+            for i, event in enumerate(events):
+                # Calculate the midpoint between from_node and to_node
+                midpoint_x = (event['from_node_x'] + event['to_node_x']) / 2
+                midpoint_y = (event['from_node_y'] + event['to_node_y']) / 2
+
+                # Transform the midpoint coordinates to WGS84
+                midpoint_coords = transformer.transform(midpoint_x, midpoint_y)
+
+                # last location is Home and should be added again
+                if (midpoint_coords[1], midpoint_coords[0]) in path_coordinates and event['acttype'] != "Home":
+                    continue
+
+                folium.Marker(
+                    location= [midpoint_coords[1], midpoint_coords[0]],  # Correct order (lat, lon)
+                    icon=folium.Icon(color="green"),
+                    popup=f"Activity: {event['acttype']}<br>Time: {event['time']}<br>Type: {event['type']}",
+                    tooltip="click for details",
+                ).add_to(m)
+
+                path_coordinates.append((midpoint_coords[1], midpoint_coords[0]))
+            
+            print("path_coordinates", len(path_coordinates), path_coordinates)
+
+            # Create a PolyLine for the shortest path
             folium.PolyLine(
-                locations=[from_coord[::-1], to_coord[::-1]],  # Flip coords because folium uses (lat, lon)
-                color="blue",
-                weight=2.5,
+                locations=path_coordinates,
+                color="red",
+                weight=3,
                 opacity=1,
-            ).add_to(m).add_child(folium.Popup(f"Link ID: {link['linkid']}"))
+            ).add_to(m)
+
+            # Add markers for midpoints along the shortest path
+            for i in range(len(path_coordinates) - 1):
+                # Calculate the midpoint between two consecutive points
+                midpoint_lat = (path_coordinates[i][0] + path_coordinates[i + 1][0]) / 2
+                midpoint_lon = (path_coordinates[i][1] + path_coordinates[i + 1][1]) / 2
+
+                # Add marker for the midpoint with a label
+                folium.Marker(
+                    location=[midpoint_lat, midpoint_lon],  # Correct order (lat, lon)
+                    icon=folium.DivIcon(
+                        icon_size=(150, 36),
+                        icon_anchor=(7, 20),
+                        html=f'<div style="font-size: 12pt; color: blue; font-weight: bold;">{i + 1}</div>'
+                    ),
+                    popup=f"Link: {i + 1}",
+                ).add_to(m)
+
+
+            # Save the map to an HTML file
+            map_html = m._repr_html_()  # Get HTML representation of the map
+            return map_html  # Directly return the HTML content
         
-        
-        # Generate and return map HTML
-        map_html = m._repr_html_()  # Get HTML representation of the map
-        return map_html  # Directly return the HTML content
+        else:
+            return "No results!"
+
     except Exception as e:
-        app.logger.error('Unhandled exception', exc_info=e)
+        app.logger.error("Unhandled exception", exc_info=e)
         return f"An error occurred: {e}", 500
     finally:
-        print("Visual called.")
+        # Close the database connection
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 
 if __name__ == '__main__':

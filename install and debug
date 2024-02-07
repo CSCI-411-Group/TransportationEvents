@@ -1,0 +1,21 @@
+CREATE EXTENSION postgis;
+CREATE EXTENSION pgrouting;
+
+-- get shortest distance
+SELECT * FROM pgr_dijkstra(
+    'SELECT id, fromnode  as source, tonode  as target, length as cost FROM links',
+    1, 27948
+);
+
+SELECT DISTINCT  e.link, e.time, e.type, e.acttype,
+	from_node.x AS from_node_x, from_node.y AS from_node_y,
+	to_node.x AS to_node_x, to_node.y AS to_node_y
+FROM events AS e
+JOIN links AS l ON e.linkid = l.id
+JOIN nodes AS from_node ON from_node.id = l.fromnode
+JOIN nodes AS to_node ON to_node.id = l.tonode
+WHERE ('p_1217' IS NULL OR e.person = 'p_1217')
+AND (NULL IS NULL OR e.time >= NULL)
+AND (NULL IS NULL OR e.time <= NULL)
+AND e.acttype is not NULL
+order by e.time;
