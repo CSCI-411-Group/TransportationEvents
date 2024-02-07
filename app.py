@@ -233,11 +233,6 @@ def insertNodesFromXml(xml_data, conn):
 def insertToDb(events, cursor):
     execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
 
-
-@app.route('/', methods=['GET', 'POST'])
-def importRender():
-    return render_template('import.html')
-
 @app.route('/importData', methods=['POST'])
 def import_data():
     try:
