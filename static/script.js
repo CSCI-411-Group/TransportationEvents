@@ -1,6 +1,8 @@
+var existingFiles = [];
+
 $(document).ready(function() {
     var searchForm = $('#search-form');
-    
+
     function updateRequiredAttributes() {
         // Enable the appropriate input based on the selected search type
         var searchType = $('input[name="searchType"]:checked').val();
@@ -181,3 +183,60 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+
+function handleFiles(files) {
+    // Display file names
+    let fileList = document.getElementById('file-list');
+
+    existingFiles = existingFiles.concat(Array.from(files));
+
+    let numberOfFiles = fileList.querySelectorAll('p').length;
+    if(numberOfFiles==2){
+        fileList.innerHTML = "";
+    }
+
+    for (const file of files) {
+        fileList.innerHTML += `<p>${file.name}</p>`;
+    }
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    let files = event.dataTransfer.files;
+    document.getElementById('file-input').files = files;
+    handleFiles(files);
+}
+
+function handleDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+}
+
+function browseFiles() {
+    document.getElementById('file-input').click();
+}
+
+function processFiles(){
+    const formData = new FormData();
+
+    var progressBarContainers = document.getElementById('progress-bar-container');
+
+    for (const file of existingFiles) {
+        formData.append('files', file);
+    }
+    
+    if(existingFiles.length === 0){
+        alert("Error: Upload 2 Files");
+        return;
+    }
+    progressBarContainers.style.display = 'block';
+
+    fetch('/importData', {
+        method: 'POST',
+        body: formData,
+    })
+    .catch(error => console.error('Error:', error));
+
+
+}

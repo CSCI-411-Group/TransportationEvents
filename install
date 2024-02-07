@@ -1,8 +1,0 @@
-CREATE EXTENSION postgis;
-CREATE EXTENSION pgrouting;
-
--- get shortest distance
-SELECT * FROM pgr_dijkstra(
-    'SELECT id, fromnode  as source, tonode  as target, length as cost FROM links',
-    1, 27948
-);
