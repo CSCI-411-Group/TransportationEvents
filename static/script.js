@@ -4,44 +4,37 @@ $(document).ready(function() {
     var searchForm = $('#search-form');
 
     function updateRequiredAttributes() {
+        document.getElementById('events').innerHTML = '';
+        document.getElementById('mapid').innerHTML = '';
+
         // Enable the appropriate input based on the selected search type
         var searchType = $('input[name="searchType"]:checked').val();
         
         // Disable all inputs first
-        $('#personId, #linkId, #linkIdLinkTable, #visPersonId, #visStartTime, #visEndTime').prop('disabled', true).val('');
-        $('#timeRange, #visualizationOptions').hide();
+        $('#personId, #linkId').prop('disabled', true).val('');
 
         switch(searchType) {
             case 'personId':
                 $('#personId').prop('disabled', false);
-                $('#timeRange').hide();
+                $('#timeRange').show();
                 $('#search').show();
-                $('#visualization-button').hide();
+                $('#events').show();
+                $('#mapid').show();
+
                 break;
             case 'linkId':
+                $('#mapid').hide();
+                $('#events').show();
                 $('#linkId').prop('disabled', false);
                 $('#timeRange').show();
                 $('#search').show();
-                $('#visualization-button').hide();
                 break;
-            case 'linkIdLinkTable':
-                $('#linkIdLinkTable').prop('disabled', false);
-                $('#timeRange').hide();
-                $('#search').show();
-                $('#visualization-button').hide();
-                break;
-            case 'visualization':
-                $('#visualizationOptions').show();
-                $('#visPersonId, #visStartTime, #visEndTime').prop('disabled', false);
-                $('#visualization-button').show();
-                $('#search').hide();
-                break;
+           
         }
     }
 
     // Initialize the form state
     updateRequiredAttributes();
-    
     $('input[name="searchType"]').change(updateRequiredAttributes);
 
     searchForm.on('submit', function(e) {
@@ -51,23 +44,16 @@ $(document).ready(function() {
         var startTime = $('#startTime').val();
         var endTime = $('#endTime').val();
         
-        // For visualization, you might want to call a different function or the same function with additional parameters
-        if(searchType === 'visualization') {
-            var visPersonId = $('#visPersonId').val();
-            var visStartTime = $('#visStartTime').val();
-            var visEndTime = $('#visEndTime').val();
-            // Add here the function to handle visualization, e.g., visualizeEvents(visPersonId, visStartTime, visEndTime);
-        } else {
-            // Existing functionality for searching events
-            searchEvents(searchType, searchId, startTime, endTime);
-        }
+        
+        searchEvents(searchType, searchId, startTime, endTime);
+        
     });
 });
 function searchEvents(searchType, searchId, startTime, endTime) {
     var queryParam = searchType + '=' + encodeURIComponent(searchId);
     
     // Ensure startTime and endTime are only appended for linkId searchType
-    if (searchType === 'linkId' && startTime && endTime) {
+    if (startTime && endTime) {
         queryParam += '&startTime=' + encodeURIComponent(startTime);
         queryParam += '&endTime=' + encodeURIComponent(endTime);
     }
@@ -102,29 +88,7 @@ function searchEvents(searchType, searchId, startTime, endTime) {
                 </table>
             `;
             }             
-            else{
-                tableHtml = `
-                <table id="eventsTable" class="display centered-table">
-                    <thead>
-                        <tr>
-                            <th>FreeSpeed</th>
-                            <th>Capacity</th>
-                            <th>Mode</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${events.map(event => `
-                            <tr>
-                                <td>${event.freespeed}</td>
-                                <td>${event.capacity}</td>
-                                <td>${event.mode}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            }
-
+        
             $('#events').html(tableHtml);
             // Initialize DataTables
             $('#eventsTable').DataTable({
@@ -142,48 +106,27 @@ function searchEvents(searchType, searchId, startTime, endTime) {
             console.error('Error:', error);
             $('#events').html('Error fetching events.');
         });
+    
+    if(searchType == 'personId'){
+
+    fetch('/visualize?' + queryParam.toString())
+    .then(response => response.text())  // Get the response text (HTML)
+    .then(data => {
+        const mapContainer = document.getElementById('mapid');
+        mapContainer.innerHTML = data;  // Insert the map HTML into the container
+        const mapElements = mapContainer.getElementsByClassName('leaflet-container'); // Assuming Leaflet is used by Folium
+        if (mapElements.length > 0) {
+            const mapElement = mapElements[0]; // Assuming only one map element
+            mapElement.style.width = '100%'; // Example style, adjust as needed
+            mapElement.style.height = '100%'; // Example style, adjust as needed
+            // Add more styles as needed
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching the map:', error);
+    }); 
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    var visualizationButton = document.getElementById('visualization-button');
-
-    if (visualizationButton) {
-        visualizationButton.addEventListener('click', function() {
-            var searchType = $('input[name="searchType"]:checked').val();
-
-            if(searchType=='visualization'){
-
-            
-            // Retrieve the visualization parameters from the form
-            var visPersonId = document.getElementById('visPersonId').value;
-            var visStartTime = document.getElementById('visStartTime').value;
-            var visEndTime = document.getElementById('visEndTime').value;
-
-            // Construct the query string with parameters
-            var queryParams = new URLSearchParams({
-                personId: visPersonId,
-                startTime: visStartTime,
-                endTime: visEndTime
-            });
-
-            fetch('/visualize?' + queryParams.toString())
-            .then(response => response.text())  // Get the response text (HTML)
-            .then(data => {
-                const mapContainer = document.getElementById('mapid');
-                mapContainer.innerHTML = data;  // Insert the map HTML into the container
-            })
-            .catch(error => {
-                console.error('Error fetching the map:', error);
-            });
-        }
-        else{
-            console.error('Error fetching the map:');
-
-        }
-        });
-    }
-});
-
+}
 
 function handleFiles(files) {
     // Display file names

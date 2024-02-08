@@ -1,6 +1,18 @@
-drop table events; 
-drop table links; 
-drop table nodes; 
+drop table events;
+drop table links;
+drop table nodes;
+
+select *
+from nodes
+select *
+from links
+select *
+from events
+
+
+delete from nodes
+delete from links
+delete from events
 
 CREATE TABLE Nodes
 (

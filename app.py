@@ -22,7 +22,7 @@ socketio = SocketIO(app)
 db_config = {
     'dbname': 'TransportationEvents',
     'user': 'postgres',
-    'password': '.',
+    'password': 'shaheen1',
     'host': 'localhost',
     'port': '5432'
 }
@@ -90,7 +90,7 @@ def insertEventsFromXml(xml_file, conn, linkid2id):
             link = event_data.get('link', None) # original linkid from the xml file
             dvrp_vehicle = event_data.get('dvrpVehicle', None)
             if link:
-                link_id = linkid2id[link] # foriegn key to the links table
+                link_id = float(linkid2id.get(link, None))
             else:
                 link_id = None
 
@@ -102,7 +102,7 @@ def insertEventsFromXml(xml_file, conn, linkid2id):
                 progress_thread = threading.Thread(target=update_progress, args=(progress_percentage, 3))
                 progress_thread.start()
                 
-                execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
+                execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, LinkID, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
 
                 events=[]
 
@@ -269,24 +269,25 @@ def update_progress(value, fileFlag):
     with app.app_context():
         socketio.emit('update_progress', {'value': value, 'flag':fileFlag}, namespace='/progress')
 
-@app.route('/', methods=['GET', 'POST'])
-def importRender():
-    if 'file_imported' in session and session['file_imported']:
-        return render_template('index.html')
+# @app.route('/', methods=['GET', 'POST'])
+# def importRender():
+#     if 'file_imported' in session and session['file_imported']:
+#         return render_template('index.html')
 
-    return render_template('import.html')
+#     return render_template('import.html')
 
-@app.route('/Home')
+@app.route('/')
 def render_another_page():
-    if 'file_imported' in session and session['file_imported']:
-        return render_template('index.html')
-    return render_template('import.html')
+    # if 'file_imported' in session and session['file_imported']:
+    #     return render_template('index.html')
+    # return render_template('import.html')
+    return render_template('index.html')
+
 
 @app.route('/search', methods=['GET'])
 def search():
     person_id = request.args.get('personId')
     event_link_id = request.args.get('linkId')
-    link_id_table = request.args.get('linkIdLinkTable')
     start_time = request.args.get('startTime')
     end_time = request.args.get('endTime')
     try:
@@ -298,7 +299,14 @@ def search():
         results_list = []
 
         if person_id:
-            cur.execute("SELECT * FROM Events WHERE Person = %s ORDER BY Time ASC", (person_id,))
+            if start_time and end_time:
+                start_seconds = time_to_seconds(start_time)
+                end_seconds = time_to_seconds(end_time)
+
+                cur.execute("SELECT * FROM Events WHERE Person = %s AND Time BETWEEN %s AND %s ORDER BY Time ASC", (person_id,start_seconds,end_seconds))
+            
+            else:
+                cur.execute("SELECT * FROM Events WHERE Person = %s ORDER BY Time ASC", (person_id,))
             results = cur.fetchall()
             results_list.extend([dict(event) for event in results])
 
@@ -316,13 +324,7 @@ def search():
             results = cur.fetchall()
             results_list.extend([dict(event) for event in results])
 
-        if link_id_table:
-            cur.execute("SELECT * FROM Links WHERE LinkID = %s", (link_id_table,))
-            results = cur.fetchall()
-            results_list.extend([dict(link) for link in results])
-
       
-
     except Exception as e:
         return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
     finally:
@@ -334,20 +336,21 @@ def search():
 
     return jsonify(results_list)
 
-@app.route("/visualize", methods=["GET"])
+@app.route('/visualize', methods=['GET'])
 def visualize():
-    person_id = request.args.get("personId")
-    start_time = request.args.get("startTime") or None
-    end_time = request.args.get("endTime") or None
 
-    if not person_id:
-        return "person_id is required!"
-    if start_time:
-        start_time = time_to_seconds(start_time)
-    if end_time:
-        end_time = time_to_seconds(end_time)
+    person_id = request.args.get('personId')
+    event_link_id = request.args.get('linkId')
+    start_time = request.args.get('startTime')
+    end_time = request.args.get('endTime')
     
-    print(person_id, start_time, end_time)
+    if start_time and end_time:
+        start_time = time_to_seconds(start_time)
+        end_time = time_to_seconds(end_time)
+    else:
+        start_time = None if start_time == '' else start_time
+        end_time = None if end_time == '' else end_time
+    
 
     conn = None
     cur = None
@@ -401,7 +404,10 @@ def visualize():
             avg_midpoint_y = sum(midpoint[1] for midpoint in midpoints) / len(midpoints)
             avg_midpoint_coords = transformer.transform(avg_midpoint_x, avg_midpoint_y)
 
-            m = folium.Map(location=[avg_midpoint_coords[1], avg_midpoint_coords[0]], zoom_start=10)
+            m = folium.Map(width=50000,height=50000,location=[avg_midpoint_coords[1],
+                                      avg_midpoint_coords[0]], 
+                                      zoom_start=10
+                                      )
 
             # Add nodes and edges to the graph
             path_coordinates = []
@@ -452,7 +458,6 @@ def visualize():
                     ),
                     popup=f"Link: {i + 1}",
                 ).add_to(m)
-
 
             # Save the map to an HTML file
             map_html = m._repr_html_()  # Get HTML representation of the map
