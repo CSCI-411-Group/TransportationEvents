@@ -12,6 +12,7 @@ import time
 from flask_socketio import SocketIO
 import secrets
 import uuid
+import math
 
 app = Flask(__name__)
 app.config['SESSION_TYPE'] = 'filesystem' 
@@ -271,8 +272,8 @@ def update_progress(value, fileFlag):
 
 @app.route('/', methods=['GET', 'POST'])
 def importRender():
-    if 'file_imported' in session and session['file_imported']:
-        return render_template('index.html')
+    # if 'file_imported' in session and session['file_imported']:
+    return render_template('index.html')
 
     return render_template('import.html')
 
@@ -358,7 +359,7 @@ def visualize():
 
         # Prepare the query to fetch events associated with the links
         event_query = """
-        SELECT DISTINCT  e.link, e.time, e.type, e.acttype,
+        SELECT DISTINCT  e.linkid, e.time, e.type, e.acttype,
             from_node.x AS from_node_x, from_node.y AS from_node_y,
             to_node.x AS to_node_x, to_node.y AS to_node_y
         FROM events AS e
@@ -381,7 +382,7 @@ def visualize():
         print(cur.query.decode('utf-8'))
         
         events = cur.fetchall()
-        print(events)
+        print("events:", events)
         
         if events:
             # Calculate the average midpoint for each line
@@ -400,22 +401,33 @@ def visualize():
             avg_midpoint_x = sum(midpoint[0] for midpoint in midpoints) / len(midpoints)
             avg_midpoint_y = sum(midpoint[1] for midpoint in midpoints) / len(midpoints)
             avg_midpoint_coords = transformer.transform(avg_midpoint_x, avg_midpoint_y)
-
-            m = folium.Map(location=[avg_midpoint_coords[1], avg_midpoint_coords[0]], zoom_start=10)
+            avg_midpoint_coords = [avg_midpoint_coords[1], avg_midpoint_coords[0]]
+            m = folium.Map(location=avg_midpoint_coords, zoom_start=10)
 
             # Add nodes and edges to the graph
             path_coordinates = []
+            source_link = None
+            target_link = None
+            previous_link = None
             for i, event in enumerate(events):
                 # Calculate the midpoint between from_node and to_node
                 midpoint_x = (event['from_node_x'] + event['to_node_x']) / 2
                 midpoint_y = (event['from_node_y'] + event['to_node_y']) / 2
-
                 # Transform the midpoint coordinates to WGS84
                 midpoint_coords = transformer.transform(midpoint_x, midpoint_y)
+                if i == 0: # source
+                    source_link = event['linkid']
+                elif i == len(events) - 1: # target
+                    target_link = event['linkid']
+                    # avoid the case where source_link is the same as target_link (in case of Home)
+                    if target_link == source_link:
+                        target_link = previous_link
 
                 # last location is Home and should be added again
-                if (midpoint_coords[1], midpoint_coords[0]) in path_coordinates and event['acttype'] != "Home":
+                if (midpoint_coords[1], midpoint_coords[0]) in path_coordinates: #and event['acttype'] != "Home":
                     continue
+
+                previous_link = event['linkid']
 
                 folium.Marker(
                     location= [midpoint_coords[1], midpoint_coords[0]],  # Correct order (lat, lon)
@@ -436,6 +448,8 @@ def visualize():
                 opacity=1,
             ).add_to(m)
 
+            # calculate the shortest path betwee two nodes and show the path
+            m = calc_shortest_path(source_link, target_link, cur, m)
             # Add markers for midpoints along the shortest path
             for i in range(len(path_coordinates) - 1):
                 # Calculate the midpoint between two consecutive points
@@ -470,6 +484,62 @@ def visualize():
             cur.close()
         if conn:
             conn.close()
+
+def calc_shortest_path(source_link, target_link, cur, map):
+
+    query = """
+    SELECT node FROM pgr_dijkstra(
+        'SELECT id, fromnode as source, tonode as target, length as cost FROM links',
+        (SELECT fromnode FROM links WHERE id = %s),
+        (SELECT fromnode FROM links WHERE id = %s)
+    );
+    """
+    cur.execute(
+        query,
+        (source_link, target_link),
+    )
+
+    print(cur.query.decode('utf-8'))
+    shortest_path_nodes = cur.fetchall()
+    # Combine all nodes together
+    shortest_path_nodes_list = [n["node"] for n in shortest_path_nodes]
+    print("shortest_path_nodes_list: ", shortest_path_nodes_list)
+
+    if shortest_path_nodes_list:
+        # Define a new query to get x and y columns from nodes table using combined node IDs
+        node_query = """
+            SELECT id, x, y FROM nodes WHERE id IN %s; 
+        """
+        # Execute the node query with combined node IDs
+        cur.execute(node_query, (tuple(shortest_path_nodes_list),))
+        print(cur.query.decode('utf-8'))
+
+        # Fetch all node coordinates
+        shortest_path_nodes_x_y = cur.fetchall()
+        print("shortest_path_nodes_x_y: ", shortest_path_nodes_x_y)
+
+        # convert coordinates
+        nodeid2coordinates = {}
+        transformer = Transformer.from_crs("epsg:32616", "epsg:4326", always_xy=True)
+        for node in shortest_path_nodes_x_y:
+            node_latlon = transformer.transform(node["x"], node["y"])
+            nodeid2coordinates[node["id"]] = (node_latlon[1], node_latlon[0]) # reverse direction for x and y need for Folium
+
+        print("nodeid2coordinates: ", nodeid2coordinates)
+
+        sorted_nodes = []
+        for node in shortest_path_nodes_list: # contains sorted nodes by shortest path
+            sorted_nodes.append(nodeid2coordinates[node])
+        
+        print("sorted_nodes: ", sorted_nodes)
+        # Plot points and connect them with lines
+        for coord in sorted_nodes:
+            folium.CircleMarker(
+            coord, color='black', radius=2).add_to(map)
+        
+        folium.PolyLine(sorted_nodes, color='green').add_to(map)
+
+    return map
 
 
 if __name__ == '__main__':

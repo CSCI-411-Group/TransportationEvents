@@ -19,3 +19,10 @@ AND (NULL IS NULL OR e.time >= NULL)
 AND (NULL IS NULL OR e.time <= NULL)
 AND e.acttype is not NULL
 order by e.time;
+
+
+SELECT * FROM pgr_dijkstra(
+    'SELECT id, fromnode as source, tonode as target, length as cost FROM links',
+    (SELECT fromnode FROM links WHERE id = 140894),
+    (SELECT fromnode FROM links WHERE id = 87231)
+);
