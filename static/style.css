@@ -61,9 +61,7 @@ button:hover {
 }
 
 /* DataTables container */
-#events {
-    margin-top: 20px;
-}
+
 
 /* Centering table text */
 .centered-table th,
@@ -108,12 +106,18 @@ table.dataTable tbody tr:hover {
     margin-bottom: 20px; /* Adjust the space as needed */
 }
 
+#mapid, #events {
+    flex: 1;
+    margin: 5px; /* Adjust margin as needed */
+    height: calc(100% - 20px); /* Adjust height as needed */
+}
+
 #mapid {
-    height: 400px; /* You can adjust the height as needed */
-    background: #ffffff;
-    margin-top: 20px; /* Space above the map area */
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #ccc; /* Just for visualization, remove this */
+}
+
+#events {
+    background-color: #f0f0f0; /* Just for visualization, remove this */
 }
 
 /* Show Visualization button specific styling */
@@ -194,6 +198,7 @@ table.dataTable tbody tr:hover {
     height: 30px;
     margin-top: 10px;
     position: relative;
+    border-radius: 20px;
 }
 
 #progress-bar {
@@ -238,3 +243,14 @@ table.dataTable tbody tr:hover {
 #file-list{
     color: blue;
 }
+.container {
+    display: flex;
+    justify-content: center; /* Centers the flex items horizontally */
+    height: 100vh; /* Set container height to 100% of viewport height */
+
+ }
+ #eventsTable_wrapper{
+    flex: 1;
+    margin: 5px; /* Adjust margin as needed */
+    height: calc(100% - 20px); /* Adjust height as needed */
+ }
