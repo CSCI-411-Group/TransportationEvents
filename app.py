@@ -103,7 +103,7 @@ def insertEventsFromXml(xml_file, conn, linkid2id):
                 progress_thread = threading.Thread(target=update_progress, args=(progress_percentage, 3))
                 progress_thread.start()
                 
-                execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, LinkID,  LinkID, DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
+                execute_batch(cursor, "INSERT INTO Events (Time, Type, DepartureID, TransitLineID, Request, ActType, Purpose, Vehicle, Amount, TransactionPartner, TransitRouteID, RelativePosition, VehicleID, TaskIndex, NetworkMode, Mode, Distance, DriverID, X, Y, Agent, DestinationStop, DvrpMode, Facility, TaskType, LegMode, Person, Delay, AtStop, Link, LinkID,  DvrpVehicle) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", events)
 
                 events=[]
 
@@ -270,12 +270,9 @@ def update_progress(value, fileFlag):
     with app.app_context():
         socketio.emit('update_progress', {'value': value, 'flag':fileFlag}, namespace='/progress')
 
-# @app.route('/', methods=['GET', 'POST'])
-# def importRender():
-#     if 'file_imported' in session and session['file_imported']:
-#         return render_template('index.html')
-
-#     return render_template('import.html')
+@app.route('/import', methods=['GET', 'POST'])
+def importRender():
+    return render_template('import.html')
 
 @app.route('/')
 def render_another_page():
@@ -404,7 +401,7 @@ def visualize():
             avg_midpoint_x = sum(midpoint[0] for midpoint in midpoints) / len(midpoints)
             avg_midpoint_y = sum(midpoint[1] for midpoint in midpoints) / len(midpoints)
             avg_midpoint_coords = transformer.transform(avg_midpoint_x, avg_midpoint_y)
-            
+
             avg_midpoint_coords = [avg_midpoint_coords[1], avg_midpoint_coords[0]]
             m = folium.Map(location=avg_midpoint_coords, zoom_start=10)
 
