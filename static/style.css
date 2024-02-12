@@ -71,10 +71,11 @@ button:hover {
 
 /* DataTables overrides */
 .dataTables_wrapper {
+    box-sizing: border-box;
     background: #ffffff;
     padding: 20px;
-    border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    
 }
 
 table.dataTable {
@@ -106,19 +107,7 @@ table.dataTable tbody tr:hover {
     margin-bottom: 20px; /* Adjust the space as needed */
 }
 
-#mapid, #events {
-    flex: 1;
-    margin: 5px; /* Adjust margin as needed */
-    height: calc(100% - 20px); /* Adjust height as needed */
-}
 
-#mapid {
-    background-color: #ccc; /* Just for visualization, remove this */
-}
-
-#events {
-    background-color: #f0f0f0; /* Just for visualization, remove this */
-}
 
 /* Show Visualization button specific styling */
 #visualization-button {
@@ -246,11 +235,40 @@ table.dataTable tbody tr:hover {
 .container {
     display: flex;
     justify-content: center; /* Centers the flex items horizontally */
-    height: 100vh; /* Set container height to 100% of viewport height */
+    height: 600px;
+    width: 100%;
+    margin-top: 5px;
 
  }
- #eventsTable_wrapper{
+
+ #mapid, #events {
     flex: 1;
-    margin: 5px; /* Adjust margin as needed */
-    height: calc(100% - 20px); /* Adjust height as needed */
- }
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+
+}
+
+#mapid > div:nth-child(1) {
+    /* Add styles for the first nested div */
+    height: 100% !important;
+    width: 100% !important;
+
+}
+#mapid > div:nth-child(1) > div {
+    /* Add styles for the first nested div */
+    height: 100% !important;
+    width: 100% !important;
+    padding-bottom: 0% !important;
+
+
+
+}
+#eventsTable_wrapper{
+    height: 100%;
+}
+@media screen and (max-width: 600px) {
+    .container {
+        flex-direction: column; /* Stack items vertically on smaller screens */
+        height: 1200px;
+    }
+  
+}

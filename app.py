@@ -398,9 +398,12 @@ def visualize():
             avg_midpoint_coords = transformer.transform(avg_midpoint_x, avg_midpoint_y)
 
             avg_midpoint_coords = [avg_midpoint_coords[1], avg_midpoint_coords[0]]
-            m = folium.Map(location=avg_midpoint_coords, zoom_start=10)
-
-            # m = folium.Map(width=50000,height=50000,location=[avg_midpoint_coords[1],
+            m = folium.Map(
+                location=avg_midpoint_coords, 
+                zoom_start=10,
+                height='100%',  # Set the width to 80% of the container
+            )
+                        # m = folium.Map(width=50000,height=50000,location=[avg_midpoint_coords[1],
             #                           avg_midpoint_coords[0]], 
             #                           zoom_start=10
             #                           )
