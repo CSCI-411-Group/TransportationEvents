@@ -67,21 +67,34 @@ function searchEvents(searchType, searchId, startTime, endTime) {
             $('#events').empty();
             var tableHtml;
             if(searchType == 'personId' || searchType == 'linkId'){
+                
+                function formatTimeFromSeconds(seconds) {
+                    var hours = Math.floor(seconds / 3600);
+                    var minutes = Math.floor((seconds % 3600) / 60);
+                    var seconds = seconds % 60;
+                    
+                    // Return formatted time
+                    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+
+                
                 tableHtml = `
                 <table id="eventsTable" class="display centered-table">
                     <thead>
                         <tr>
-                            <th>Event ID</th>
+                            <th>Link ID</th>
                             <th>Type</th>
                             <th>Time</th>
+                            <th>Mode</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${events.map(event => `
                             <tr>
-                                <td>${event.eventid}</td>
+                                <td>${event.linkid}</td>
                                 <td>${event.type}</td>
-                                <td>${event.time}</td>
+                                <td>${formatTimeFromSeconds(event.time)}</td>
+                                <td>${event.mode}</td>
                             </tr>
                         `).join('')}
                     </tbody>

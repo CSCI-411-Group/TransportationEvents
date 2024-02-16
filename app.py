@@ -15,7 +15,6 @@ import uuid
 import math
 
 app = Flask(__name__)
-app.config['SESSION_TYPE'] = 'filesystem' 
 app.secret_key = str(uuid.uuid4()) 
 socketio = SocketIO(app)
 #connection (change this based on your db)
@@ -23,7 +22,7 @@ socketio = SocketIO(app)
 db_config = {
     'dbname': 'TransportationEvents',
     'user': 'postgres',
-    'password': '.',
+    'password': 'shaheen1',
     'host': 'localhost',
     'port': '5432'
 }
@@ -257,7 +256,6 @@ def import_data():
                 xml_data = xml_file.read()
                 insertEventsFromXml(xml_data, conn, linkid2id)
 
-        session['file_imported'] = True
 
         return jsonify({'success': True}), 200
         conn.close()
@@ -276,9 +274,6 @@ def importRender():
 
 @app.route('/')
 def render_another_page():
-    # if 'file_imported' in session and session['file_imported']:
-    #     return render_template('index.html')
-    # return render_template('import.html')
     return render_template('index.html')
 
 
@@ -403,9 +398,12 @@ def visualize():
             avg_midpoint_coords = transformer.transform(avg_midpoint_x, avg_midpoint_y)
 
             avg_midpoint_coords = [avg_midpoint_coords[1], avg_midpoint_coords[0]]
-            m = folium.Map(location=avg_midpoint_coords, zoom_start=10)
-
-            # m = folium.Map(width=50000,height=50000,location=[avg_midpoint_coords[1],
+            m = folium.Map(
+                location=avg_midpoint_coords, 
+                zoom_start=10,
+                height='100%',  # Set the width to 80% of the container
+            )
+                        # m = folium.Map(width=50000,height=50000,location=[avg_midpoint_coords[1],
             #                           avg_midpoint_coords[0]], 
             #                           zoom_start=10
             #                           )
