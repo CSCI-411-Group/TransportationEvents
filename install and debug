@@ -26,3 +26,8 @@ SELECT * FROM pgr_dijkstra(
     (SELECT fromnode FROM links WHERE id = 140894),
     (SELECT fromnode FROM links WHERE id = 87231)
 );
+
+-- Some examples for testin
+p_1
+p_8572
+p_7777
