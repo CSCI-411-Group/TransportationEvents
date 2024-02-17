@@ -22,13 +22,37 @@ socketio = SocketIO(app)
 db_config = {
     'dbname': 'TransportationEvents',
     'user': 'postgres',
-    'password': 'shaheen1',
+    'password': 'user',
     'host': 'localhost',
     'port': '5432'
 }
 @socketio.on('connect', namespace='/progress')
 def connect():
     print('Client connected to progress updates')
+    
+class NodeSetting():
+    def __init__(self, activity, icon_name, icon_color="blue"):
+        self.activity = activity
+        self.icon_name = icon_name
+        self.icon_color = icon_color
+
+# Define node settings
+s1 = NodeSetting("Home", "home", "red")
+s2 = NodeSetting("Work", "briefcase", "green")
+s3 = NodeSetting("actstart", "play", "orange") 
+s4 = NodeSetting("actend", "stop", "purple")     
+s5 = NodeSetting("arrival", "arrow-up", "blue") 
+s6 = NodeSetting("departure", "arrow-down", "gray") 
+# Map activity names to settings
+activity_to_settings = {
+    s1.activity: s1,
+    s2.activity: s2,
+    s3.activity: s3,
+    s4.activity: s4,
+    s5.activity: s5,
+    s6.activity: s6,
+}
+
 
 def time_to_seconds(time_str):
     hours, minutes = map(int, time_str.split(':'))
@@ -432,13 +456,22 @@ def visualize():
                     continue
 
                 previous_link = event['linkid']
+                
+                # Determine the icon settings based on the activity type
+                if event['type'] in activity_to_settings:
+                    setting = activity_to_settings[event['type']]
+                    icon = folium.Icon(icon=setting.icon_name, color=setting.icon_color)
+                else:
+                    # If the activity type is not found in the mappings, use a default grey icon
+                    icon = folium.Icon(icon='info-sign', color='gray')
 
                 folium.Marker(
-                    location= [midpoint_coords[1], midpoint_coords[0]],  # Correct order (lat, lon)
-                    icon=folium.Icon(color="green"),
+                    location=[midpoint_coords[1], midpoint_coords[0]],  # Correct order (lat, lon)
+                    icon=icon,
                     popup=f"Activity: {event['acttype']}<br>Time: {event['time']}<br>Type: {event['type']}",
                     tooltip="click for details",
                 ).add_to(m)
+
 
                 path_coordinates.append((midpoint_coords[1], midpoint_coords[0]))
             
