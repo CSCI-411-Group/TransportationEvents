@@ -22,7 +22,7 @@ socketio = SocketIO(app)
 db_config = {
     'dbname': 'TransportationEvents',
     'user': 'postgres',
-    'password': 'shaheen1',
+    'password': '.', # shaheen1
     'host': 'localhost',
     'port': '5432'
 }
