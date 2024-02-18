@@ -450,24 +450,25 @@ def visualize():
             source_link = None
             target_link = None
             previous_link = None
-            activityset = set()
             for i, event in enumerate(events):
                 # Calculate the midpoint between from_node and to_node
                 midpoint_x = (event['from_node_x'] + event['to_node_x']) / 2
                 midpoint_y = (event['from_node_y'] + event['to_node_y']) / 2
                 # Transform the midpoint coordinates to WGS84
                 midpoint_coords = transformer.transform(midpoint_x, midpoint_y)
-
-                # calculate the shortest path betwee two nodes and show the path on the map
-                if i != 0 and event['acttype'] not in activityset:
-                    m = calc_shortest_path(source_link, event['linkid'], cur, m, i)
-                
-                activityset.add(event['acttype'])
-                source_link = event['linkid']
+                if i == 0: # source
+                    source_link = event['linkid']
+                elif i == len(events) - 1: # target
+                    target_link = event['linkid']
+                    # avoid the case where source_link is the same as target_link (in case of Home)
+                    if target_link == source_link:
+                        target_link = previous_link
 
                 # last location is Home and should be added again
                 if (midpoint_coords[1], midpoint_coords[0]) in path_coordinates: #and event['acttype'] != "Home":
                     continue
+
+                previous_link = event['linkid']
                 
                 # Determine the icon settings based on the activity type
                 print("event['acttype']: ", event['acttype'])
@@ -490,6 +491,16 @@ def visualize():
             
             # print("path_coordinates", len(path_coordinates), path_coordinates)
 
+            # Create a PolyLine for the shortest path
+            folium.PolyLine(
+                locations=path_coordinates,
+                color="red",
+                weight=3,
+                opacity=1,
+            ).add_to(m)
+
+            # calculate the shortest path betwee two nodes and show the path
+            m = calc_shortest_path(source_link, target_link, cur, m)
             # Add markers for midpoints along the shortest path
             for i in range(len(path_coordinates) - 1):
                 # Calculate the midpoint between two consecutive points
@@ -524,7 +535,7 @@ def visualize():
         if conn:
             conn.close()
 
-def calc_shortest_path(source_link, target_link, cur, map, i):
+def calc_shortest_path(source_link, target_link, cur, map):
 
     query = """
     SELECT node FROM pgr_dijkstra(
@@ -555,7 +566,7 @@ def calc_shortest_path(source_link, target_link, cur, map, i):
 
         # Fetch all node coordinates
         shortest_path_nodes_x_y = cur.fetchall()
-        # print("shortest_path_nodes_x_y: ", shortest_path_nodes_x_y)
+        print("shortest_path_nodes_x_y: ", shortest_path_nodes_x_y)
 
         # convert coordinates
         nodeid2coordinates = {}
@@ -564,25 +575,22 @@ def calc_shortest_path(source_link, target_link, cur, map, i):
             node_latlon = transformer.transform(node["x"], node["y"])
             nodeid2coordinates[node["id"]] = (node_latlon[1], node_latlon[0]) # reverse direction for x and y need for Folium
 
-        # print("nodeid2coordinates: ", nodeid2coordinates)
+        print("nodeid2coordinates: ", nodeid2coordinates)
 
         sorted_nodes = []
         for node in shortest_path_nodes_list: # contains sorted nodes by shortest path
             sorted_nodes.append(nodeid2coordinates[node])
         
-        # print("sorted_nodes: ", sorted_nodes)
-        print("i", i)
+        print("sorted_nodes: ", sorted_nodes)
         # Plot points and connect them with lines
         for coord in sorted_nodes:
             folium.CircleMarker(
-            coord, color=color_list[(i - 1) // 2 % len(color_list)][0], radius=2).add_to(map)
+            coord, color='black', radius=2).add_to(map)
         
-        folium.PolyLine(sorted_nodes, color=color_list[(i - 1) // 2 % len(color_list)][1]).add_to(map)
+        folium.PolyLine(sorted_nodes, color='green').add_to(map)
 
     return map
 
-
-color_list = [('green', 'black'), ('blue', 'red')]  # List of available colors
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)

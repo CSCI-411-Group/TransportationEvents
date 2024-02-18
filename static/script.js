@@ -83,6 +83,7 @@ function searchEvents(searchType, searchId, startTime, endTime) {
                     <thead>
                         <tr>
                             <th>Link ID</th>
+                            <th>Activity</th>
                             <th>Type</th>
                             <th>Time</th>
                             <th>Mode</th>
@@ -92,6 +93,7 @@ function searchEvents(searchType, searchId, startTime, endTime) {
                         ${events.map(event => `
                             <tr>
                                 <td>${event.linkid}</td>
+                                <td>${event.acttype}</td>
                                 <td>${event.type}</td>
                                 <td>${formatTimeFromSeconds(event.time)}</td>
                                 <td>${event.mode}</td>
@@ -110,7 +112,9 @@ function searchEvents(searchType, searchId, startTime, endTime) {
                 autoWidth: false, // This can help with rendering issues in some cases
                 language: {
                 emptyTable: "No Data Found!" // Custom message for an empty table
-                }
+                },
+                order: [[ 3, "asc" ]] // Sort by the second column in ascending order
+
                 
             });
           
